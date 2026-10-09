@@ -1,0 +1,959 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="theme-color" content="#0f2430" />
+<title>Garuda Route · Road Waterlogging Alerts</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;700;800&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+:root{
+  --ink:#0f2430; --ink-2:#2a4252; --mute:#647986; --line:#dbe3e8;
+  --paper:#eef2f4; --card:#ffffff; --rain:#1d6fa5; --rain-soft:#e3f0f8;
+  --ok:#168a5c; --ok-bg:#e2f4ec;
+  --warn:#b57a0a; --warn-bg:#fff1d3;
+  --bad:#cf3a35; --bad-bg:#fde8e6;
+  --radius:12px;
+  --display:"Bricolage Grotesque","Segoe UI",system-ui,sans-serif;
+  --body:"IBM Plex Sans","Segoe UI",system-ui,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--body);font-size:14px;line-height:1.5}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid #6bb5e6;outline-offset:2px}
+.sr{position:absolute;left:-9999px}
+
+/* ---------- App shell ---------- */
+.app{display:grid;grid-template-rows:auto 1fr;height:100vh;height:100dvh}
+.top{display:flex;align-items:center;gap:18px;padding:10px 18px;background:var(--ink);color:#fff}
+.logo{display:flex;align-items:center;gap:10px;font-family:var(--display);font-weight:800;font-size:19px;letter-spacing:-.3px}
+.logo svg{width:30px;height:30px}
+.city-tabs{display:flex;gap:4px;margin-left:12px;background:#ffffff14;padding:3px;border-radius:10px}
+.city-tabs button{border:0;background:transparent;color:#bcd0dc;padding:7px 14px;border-radius:8px;font-weight:600}
+.city-tabs button[aria-pressed="true"]{background:#fff;color:var(--ink)}
+.top-right{margin-left:auto;display:flex;align-items:center;gap:10px}
+.chip{display:inline-flex;align-items:center;gap:7px;padding:6px 11px;border-radius:99px;background:#ffffff1a;color:#dbe8f0;font-size:12px;font-weight:500;border:0}
+.chip i{width:8px;height:8px;border-radius:50%;background:#e0a21a;display:inline-block}
+.chip.good i{background:#37c58d}.chip.bad i{background:#ff7a74}
+.btn{border:1px solid var(--line);background:#fff;border-radius:9px;padding:8px 13px;font-weight:600;font-size:13px}
+.btn:hover{background:#f6f9fb}
+.btn.primary{background:var(--rain);border-color:var(--rain);color:#fff}
+.btn.primary:hover{background:#17598a}
+.btn.ghost-dark{background:#ffffff1a;border-color:transparent;color:#fff}
+.btn.ghost-dark:hover{background:#ffffff2e}
+.btn.small{padding:6px 10px;font-size:12px}
+
+.main{display:grid;grid-template-columns:minmax(0,1fr) 420px;min-height:0}
+.stage{position:relative;min-height:0;background:#d7e2e8}
+#map{position:absolute;inset:0}
+.panel{display:flex;flex-direction:column;min-height:0;background:var(--card);border-left:1px solid var(--line)}
+
+/* ---------- KPI strip over the map ---------- */
+.kpis{position:absolute;z-index:3;top:12px;left:12px;right:12px;display:flex;gap:8px;flex-wrap:wrap;pointer-events:none}
+.kpi{pointer-events:auto;background:#ffffffee;backdrop-filter:blur(6px);border:1px solid var(--line);border-radius:10px;padding:7px 12px;min-width:92px;box-shadow:0 2px 10px #0f243014}
+.kpi b{display:block;font-family:var(--display);font-size:22px;line-height:1.1}
+.kpi span{font-size:11px;color:var(--mute)}
+.kpi.ok b{color:var(--ok)}.kpi.warn b{color:var(--warn)}.kpi.bad b{color:var(--bad)}
+
+/* ---------- Rain clock ---------- */
+.clock{position:absolute;z-index:3;left:12px;right:12px;bottom:12px;background:#0f2430f2;color:#fff;border-radius:14px;padding:14px 18px 12px;box-shadow:0 10px 30px #0f243055}
+.clock-head{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.clock-time{font-family:var(--display);font-weight:800;font-size:38px;letter-spacing:-1px;line-height:1;min-width:130px}
+.clock-time small{font-size:15px;font-weight:600;color:#9db6c6;margin-left:4px}
+.clock-label{font-size:12px;color:#9db6c6;line-height:1.3}
+.seg{display:flex;background:#ffffff1a;border-radius:9px;padding:3px;margin-left:auto}
+.seg button{border:0;background:transparent;color:#bcd0dc;padding:6px 11px;border-radius:7px;font-size:12px;font-weight:600}
+.seg button[aria-pressed="true"]{background:#fff;color:var(--ink)}
+.play{width:38px;height:38px;border-radius:50%;border:0;background:#fff;color:var(--ink);display:grid;place-items:center;flex-shrink:0}
+.track-wrap{position:relative;margin-top:16px;padding-top:20px}
+.ticks{position:absolute;left:0;right:0;top:0;height:18px}
+.tick{position:absolute;transform:translateX(-50%);width:10px;height:14px;border-radius:3px 3px 5px 5px;border:0;padding:0;background:#8aa4b5;top:0}
+.tick.monitor{background:#e8b02e}.tick.high{background:#ff6b64}
+.tick::after{content:"";position:absolute;left:50%;top:14px;width:1px;height:6px;background:#ffffff55}
+input[type=range]{width:100%;accent-color:#6bb5e6;height:24px;margin:0}
+.scale{display:flex;justify-content:space-between;color:#7f9aab;font-size:10px;margin-top:2px}
+.live-actions{display:none;gap:8px;align-items:center}
+.clock.live .live-actions{display:flex}
+.clock.live .sim-only{display:none}
+
+/* ---------- Map legend / banner ---------- */
+.map-msg{position:absolute;z-index:4;top:76px;left:12px;max-width:380px;background:#fff;border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:12px;color:var(--ink-2);box-shadow:0 4px 18px #0f24301f;display:none}
+.map-msg.show{display:block}
+
+/* ---------- Panel tabs ---------- */
+.tabs{display:flex;border-bottom:1px solid var(--line);padding:0 8px}
+.tabs button{flex:1;border:0;background:transparent;padding:13px 6px;font-weight:600;color:var(--mute);border-bottom:3px solid transparent;margin-bottom:-1px}
+.tabs button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--rain)}
+.tabs .n{display:inline-block;min-width:20px;padding:0 6px;margin-left:4px;border-radius:99px;background:var(--bad);color:#fff;font-size:11px;line-height:18px}
+.tabs .n:empty,.tabs .n.zero{display:none}
+.pane{display:none;flex:1;min-height:0;overflow:auto;padding:16px}
+.pane.active{display:block}
+h2{font-family:var(--display);font-size:17px;margin:0 0 4px;letter-spacing:-.2px}
+h3{font-family:var(--display);font-size:15px;margin:0}
+.sub{color:var(--mute);font-size:12px;margin:0 0 12px}
+
+.badge{display:inline-block;padding:3px 9px;border-radius:99px;font-size:11px;font-weight:700;white-space:nowrap}
+.badge.NORMAL{background:var(--ok-bg);color:var(--ok)}
+.badge.MONITOR{background:var(--warn-bg);color:var(--warn)}
+.badge.HIGH_RISK{background:var(--bad-bg);color:var(--bad)}
+
+/* ---------- Alerts ---------- */
+.alert{display:grid;grid-template-columns:4px 1fr;gap:12px;margin-bottom:10px;border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;background:#fff;cursor:pointer;text-align:left;width:100%;padding:0}
+.alert .bar{background:var(--warn)} .alert.HIGH_RISK .bar{background:var(--bad)}
+.alert .body{padding:11px 12px 11px 0}
+.alert .t{display:flex;justify-content:space-between;gap:8px;align-items:center;margin-bottom:3px}
+.alert p{margin:0;font-size:13px;color:var(--ink-2)}
+.alert small{color:var(--mute);font-size:11px}
+.empty{padding:26px 12px;text-align:center;color:var(--mute);border:1px dashed var(--line);border-radius:var(--radius)}
+.empty b{display:block;color:var(--ink);margin-bottom:4px;font-family:var(--display);font-size:15px}
+
+/* ---------- Roads ---------- */
+.search{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:9px;background:#fafcfd}
+.filters{display:flex;gap:6px;margin:10px 0;flex-wrap:wrap}
+.filters button{border:1px solid var(--line);background:#fff;border-radius:99px;padding:5px 11px;font-size:12px;font-weight:600;color:var(--ink-2)}
+.filters button[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:#fff}
+.road{display:block;width:100%;text-align:left;border:1px solid var(--line);background:#fff;border-radius:var(--radius);padding:11px 12px;margin-bottom:8px}
+.road:hover{border-color:#b8cad5}
+.road.sel{border-color:var(--rain);box-shadow:0 0 0 3px var(--rain-soft)}
+.road .r1{display:flex;justify-content:space-between;gap:8px;align-items:center}
+.road .r1 strong{font-size:13px}
+.road .r2{color:var(--mute);font-size:11px;margin:2px 0 8px}
+.meter{position:relative;height:7px;border-radius:99px;background:#e8eef1;overflow:visible}
+.meter .fill{position:absolute;left:0;top:0;bottom:0;border-radius:99px;background:var(--ok);max-width:100%}
+.meter .fill.MONITOR{background:#e0a21a}.meter .fill.HIGH_RISK{background:var(--bad)}
+.meter .mark{position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--ink)}
+.detail{border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:14px;background:linear-gradient(#fff,#f7fafb)}
+.detail .head{display:flex;justify-content:space-between;gap:8px;align-items:flex-start}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:12px 0}
+.cell{border:1px solid var(--line);border-radius:10px;padding:9px 11px;background:#fff}
+.cell span{display:block;font-size:11px;color:var(--mute)}
+.cell b{font-family:var(--display);font-size:18px}
+.why{font-size:12px;color:var(--ink-2);background:var(--rain-soft);border-radius:10px;padding:10px 12px;margin:0 0 12px}
+.row-btns{display:flex;gap:8px;flex-wrap:wrap}
+
+/* ---------- History ---------- */
+.bars{display:grid;gap:9px;margin:12px 0 18px}
+.bar-row{display:grid;grid-template-columns:118px 1fr 48px;gap:8px;align-items:center;font-size:12px}
+.bar-row .name{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bar-track{position:relative;height:16px;background:#edf2f5;border-radius:5px}
+.bar-fill{position:absolute;left:0;top:0;bottom:0;border-radius:5px;background:#86b6d3}
+.bar-fill.Severe{background:#d9625e}.bar-fill.Moderate{background:#e5b04c}
+.bar-now{position:absolute;top:-4px;bottom:-4px;width:2px;background:var(--ink)}
+.key{display:flex;gap:12px;flex-wrap:wrap;font-size:11px;color:var(--mute)}
+.key i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{text-align:left;color:var(--mute);font-weight:600;padding:7px 6px;border-bottom:1px solid var(--line)}
+td{padding:8px 6px;border-bottom:1px solid #edf1f3;vertical-align:top}
+
+/* ---------- Route ---------- */
+.field{display:block;margin-bottom:10px}
+.field span{display:block;font-size:12px;font-weight:600;margin-bottom:4px}
+.field input,.field select{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:9px;background:#fafcfd}
+.route-opt{border:1px solid var(--line);border-radius:var(--radius);padding:11px 12px;margin-bottom:8px;background:#fff;width:100%;text-align:left}
+.route-opt.best{border-color:var(--ok);background:#f4fbf8}
+.route-opt .a{display:flex;justify-content:space-between;font-weight:600}
+.route-opt small{color:var(--mute)}
+.note{font-size:12px;color:var(--mute);margin:12px 0 0}
+.note a{color:var(--rain)}
+
+/* ---------- Toasts ---------- */
+.toasts{position:fixed;z-index:50;top:70px;right:16px;display:grid;gap:8px;width:min(380px,calc(100vw - 32px))}
+.toast{background:#fff;border:1px solid var(--line);border-left:5px solid var(--warn);border-radius:10px;padding:11px 13px;box-shadow:0 10px 28px #0f243030;animation:in .25s ease-out}
+.toast.HIGH_RISK{border-left-color:var(--bad)}
+.toast b{display:block;font-size:13px}
+.toast p{margin:2px 0 0;font-size:12px;color:var(--ink-2)}
+@keyframes in{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:none}}
+
+/* ---------- Responsive ---------- */
+@media (max-width:980px){
+  .app{height:auto;min-height:100vh}
+  .main{grid-template-columns:1fr}
+  .stage{height:70vh;min-height:520px}
+  .panel{border-left:0;border-top:1px solid var(--line);min-height:70vh}
+  .city-tabs{margin-left:0}
+  .top{flex-wrap:wrap}
+  .top-right{margin-left:0;width:100%;min-width:0;flex-wrap:wrap}
+  .top-right .chip{min-width:0;max-width:100%}
+  #dataChipText{overflow-wrap:anywhere}
+}
+@media (max-width:560px){
+  .kpi{min-width:0;flex:1 1 40%}
+  .clock-time{font-size:30px;min-width:100px}
+  .seg{margin-left:0}
+}
+@media (prefers-reduced-motion:reduce){.toast{animation:none}}
+.badge.UNRATED{background:#e6edf2;color:#4a6578}
+.kpi.mute b{color:#4a6578}
+.fill.UNRATED{background:#9db2c0}
+.evt{border-top:1px solid var(--line);padding:9px 0;font-size:12px}
+.evt:first-child{border-top:0}
+.evt b{font-size:12px}
+.evt a,.src a{color:var(--rain);word-break:break-all}
+.evt p{margin:2px 0;color:var(--ink-2)}
+.pos{font-size:11px;color:var(--mute);margin:8px 0 0}
+.imd-card{border:1px solid var(--line);border-radius:13px;padding:13px;margin:12px 0 16px;background:linear-gradient(135deg,#f3f9fc,#fff)}.imd-card-head{display:flex;align-items:center;justify-content:space-between;gap:10px}.eyebrow{font-size:10px;letter-spacing:.08em;font-weight:700;color:var(--rain)}#imdHeadline{font-size:15px;margin-top:2px}.imd-summary{font-size:12px;color:var(--ink-2);margin-top:8px}.imd-settings{border-top:1px solid var(--line);padding-top:8px;margin-top:10px;font-size:12px}.imd-settings summary{cursor:pointer;font-weight:600}.imd-settings .field{margin-top:10px}.imd-settings .field input{font-size:11px}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="top">
+    <div class="logo">
+      <svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="9" fill="#1d6fa5"/><path d="M16 5c4.2 5.2 7 8.4 7 12a7 7 0 0 1-14 0c0-3.600 2.800-6.800 7-12z" fill="#fff"/><path d="M11.500 20.500l4-4 2 2 3.500-4" stroke="#1d6fa5" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Garuda Route
+    </div>
+    <div class="city-tabs" id="cityTabs" role="group" aria-label="City">
+      <button data-city="kanpur" aria-pressed="true">Kanpur</button>
+      <button data-city="gurugram" aria-pressed="false">Gurugram</button>
+      <button data-city="all" aria-pressed="false">Both</button>
+    </div>
+    <div class="top-right">
+      <span class="chip" id="dataChip"><i></i><span id="dataChipText">Loading historical records…</span></span>
+      <span class="chip" id="imdChip"><i></i><span id="imdChipText">IMD feed: not checked</span></span>
+      <button class="btn ghost-dark small" id="imdBtn">Check IMD feed</button>
+      <label class="btn ghost-dark small" style="cursor:pointer">Import spreadsheet
+        <input type="file" id="fileInput" accept=".xlsx,.xls,.csv" class="sr" />
+      </label>
+    </div>
+  </header>
+
+  <div class="main">
+    <section class="stage" aria-label="Risk map">
+      <div id="map"></div>
+      <div class="kpis" id="kpis"></div>
+      <div class="map-msg" id="mapMsg" role="status"></div>
+
+      <div class="clock" id="clock">
+        <div class="clock-head">
+          <button class="play sim-only" id="playBtn" aria-label="Play rainfall simulation">
+            <svg width="16" height="16" viewBox="0 0 16 16" id="playIcon"><path d="M4 2l10 6-10 6z" fill="currentColor"/></svg>
+          </button>
+          <div>
+            <div class="clock-time"><span id="minNow">0</span><small>min</small></div>
+          </div>
+          <div class="clock-label" id="clockLabel">Continuous rainfall<br/>Drag to see which roads cross their threshold</div>
+          <div class="live-actions">
+            <button class="btn small" id="liveStart">Rain started now</button>
+            <button class="btn small" id="liveReset">Reset</button>
+          </div>
+          <div class="seg" id="modeSeg" role="group" aria-label="Rainfall source">
+            <button data-mode="mm" aria-pressed="true">Rain mm</button>
+            <button data-mode="min" aria-pressed="false">Duration</button>
+            <button data-mode="live" aria-pressed="false">Live timer</button>
+          </div>
+        </div>
+        <div class="track-wrap sim-only">
+          <div class="ticks" id="ticks"></div>
+          <input type="range" id="slider" min="0" max="150" step="1" value="0" aria-label="Minutes of continuous rainfall" />
+          <div class="scale" id="scale"></div>
+        </div>
+      </div>
+    </section>
+
+    <aside class="panel">
+      <div class="tabs" role="tablist" id="tabs">
+        <button role="tab" data-tab="alerts" aria-selected="true">Alerts<span class="n" id="alertN"></span></button>
+        <button role="tab" data-tab="roads" aria-selected="false">Roads</button>
+        <button role="tab" data-tab="history" aria-selected="false">History</button>
+        <button role="tab" data-tab="route" aria-selected="false">Route</button>
+      </div>
+
+      <div class="pane active" id="pane-alerts" role="tabpanel">
+        <h2>Traveller alerts</h2>
+        <p class="sub">Historical evidence and current IMD district weather context, kept separate from road-level risk.</p>
+        <section class="imd-card" aria-live="polite"><div class="imd-card-head"><div><span class="eyebrow">LIVE WEATHER · IMD</span><h3 id="imdHeadline">Waiting for feed</h3></div><button class="btn small" id="imdRefresh">Refresh</button></div><div id="imdSummary" class="imd-summary">Rainfall and warnings will appear here when the feed is reachable.</div><details class="imd-settings"><summary>Feed connection</summary><p class="note">Weather data is requested through the app backend. Keep IMD credentials in the backend environment, never in this page or browser storage.</p><a href="https://api.imd.gov.in/public/api_reference.html" target="_blank" rel="noopener">IMD API reference</a></details></section>
+        <div id="alertList"></div>
+        <div class="row-btns" style="margin-top:14px">
+          <button class="btn primary" id="locBtn">Check alerts near me</button>
+        </div>
+        <p class="note" id="locNote">Uses your device location only in this browser. Nothing is sent anywhere.</p>
+      </div>
+
+      <div class="pane" id="pane-roads" role="tabpanel">
+        <div id="detail"></div>
+        <input class="search" id="search" placeholder="Search road or ID" aria-label="Search roads" />
+        <div class="filters" id="filters">
+          <button data-f="ALL" aria-pressed="true">All</button>
+          <button data-f="NORMAL" aria-pressed="false">Normal</button>
+          <button data-f="MONITOR" aria-pressed="false">Monitor</button>
+          <button data-f="HIGH_RISK" aria-pressed="false">High risk</button>
+        </div>
+        <div id="roadList"></div>
+      </div>
+
+      <div class="pane" id="pane-history" role="tabpanel">
+        <h2>Historical thresholds</h2>
+        <p class="sub">Lowest rainfall reported alongside waterlogging at each location. The dark line is the rain clock.</p><p class="why">These are city or district totals from news reports, not readings from a gauge on the road. Treat them as reference points, not calibrated triggers.</p>
+        <div class="bars" id="bars"></div>
+        <div class="key">
+          <span><i style="background:#86b6d3"></i>Low severity</span>
+          <span><i style="background:#e5b04c"></i>Moderate</span>
+          <span><i style="background:#d9625e"></i>Severe</span>
+        </div>
+        <h3 style="margin:20px 0 6px">Event records</h3>
+        <div style="overflow:auto"><table id="histTable"></table></div>
+      </div>
+
+      <div class="pane" id="pane-route" role="tabpanel">
+        <h2>Alternative route</h2>
+        <p class="sub">Use your current position as the origin, then compare routes against reported waterlogging locations.</p><button class="btn" id="useLocRoute">Use my location</button><p class="note" id="routeLocNote">Your location stays in this browser and is used as the route origin.</p>
+        <label class="field"><span>From</span><input id="from" placeholder="e.g. Kanpur Central Railway Station" /></label>
+        <label class="field"><span>To</span><input id="to" placeholder="e.g. Jajmau, Kanpur" /></label>
+        <button class="btn primary" id="routeBtn">Find shortest safer route</button>
+        <div id="routeOut" style="margin-top:14px"></div>
+        <p class="note" id="routeNote"></p>
+      </div>
+    </aside>
+  </div>
+</div>
+<div class="toasts" id="toasts" aria-live="polite"></div>
+
+<script src="/config.js"></script>
+<script src="/records.js"></script>
+<script>
+"use strict";
+
+/* =====================================================================
+   CONFIGURATION
+  The Google Maps browser key is injected by the backend when configured.
+  Browser keys are public by design: restrict them to your site and APIs.
+   APIs this app uses: Maps JavaScript API, Geocoding API (finds road
+   positions), Directions API (Route tab).
+   ===================================================================== */
+const API_KEY = window.GARUDA_CONFIG?.googleMapsApiKey || "";
+const CONFIG = {
+  googleMapsApiKey: API_KEY,
+  imdReferenceUrl: "https://api.imd.gov.in/public/api_reference.html",
+  imdWarningsUrl: "/api/imd/warnings",
+  imdRainfallUrl: "/api/imd/rainfall",
+  imdPollMs: 5 * 60 * 1000,
+  riskLevels: { monitorAt: 0.75, highAt: 1.0 }
+};
+const CITIES = {
+  kanpur:   { name: "Kanpur",   center: { lat: 26.4499, lng: 80.3319 }, zoom: 12 },
+  gurugram: { name: "Gurugram", center: { lat: 28.4595, lng: 77.0266 }, zoom: 12 }
+};
+
+const METRICS = {
+  mm:  { unit: "mm",  max: 300, step: 1, scale: [0,50,100,150,200,250,300] },
+  min: { unit: "min", max: 180, step: 1, scale: [0,30,60,90,120,150,180] }
+};
+
+/* Workbook records are served by the backend so this dataset is consistent on every launch. */
+const ev = (date, mm, scope, dur, sev, impact, src) => ({ date, mm, scope, dur, sev, impact, src });
+const EVIDENCE = window.GARUDA_DATA?.locations || [];
+
+/* =====================================================================
+   STATE + HELPERS
+   ===================================================================== */
+const S = {
+  imd: { warning:null, rainfall:null, updated:null, error:null, loading:false },
+  roads: [], city: "kanpur", filter: "ALL", query: "", selected: null,
+  mode: "mm", metric: "mm", v: 0, liveStart: null, playing: false, timer: null, liveTick: null,
+  prevLevel: new Map()
+};
+const $ = id => document.getElementById(id);
+const RISK = { NORMAL:"Normal", MONITOR:"Monitor", HIGH_RISK:"High risk", UNRATED:"No trigger data" };
+const COLOR = { NORMAL:"#168a5c", MONITOR:"#e0a21a", HIGH_RISK:"#cf3a35", UNRATED:"#5f7f94" };
+const unit = () => METRICS[S.metric].unit;
+const esc = v => String(v ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const safeUrl = u => /^https?:\/\//i.test(u) ? u : "";
+
+function parseDuration(t){
+  const s = String(t ?? "");
+  if(/^\s*unknown/i.test(s)) return null;
+  const m = s.match(/(\d+(?:\.\d+)?)\s*(hours?|hrs?|minutes?|mins?)/i);
+  return m ? Math.round(parseFloat(m[1]) * (/^h/i.test(m[2]) ? 60 : 1)) : null;
+}
+function sevRank(s){ s = String(s||"").toLowerCase(); return s.startsWith("severe")?3 : s.startsWith("high")?2 : 0; }
+
+function normalize(l){
+  const mms = l.events.map(e => e.mm).filter(v => Number.isFinite(v));
+  const durs = l.events.map(e => parseDuration(e.dur)).filter(v => v != null);
+  const worst = Math.max(0, ...l.events.map(e => sevRank(e.sev)));
+  return { ...l,
+    refMm: mms.length ? Math.min(...mms) : null,
+    refMin: l.refMin ?? (durs.length ? Math.min(...durs) : null),
+    severity: worst===3 ? "Severe" : worst===2 ? "High" : "Not stated",
+    located: false, lengthM: l.lengthM || 450, heading: l.heading ?? 90 };
+}
+const refOf = r => S.metric === "mm" ? r.refMm : r.refMin;
+function levelOf(r, v = S.v){
+  const ref = refOf(r); if(ref == null) return "UNRATED";
+  const ratio = v / ref;
+  return ratio >= CONFIG.riskLevels.highAt ? "HIGH_RISK" : ratio >= CONFIG.riskLevels.monitorAt ? "MONITOR" : "NORMAL";
+}
+const scoped = () => S.roads.filter(r => S.city === "all" || r.city === S.city);
+const atRisk = lvl => lvl === "MONITOR" || lvl === "HIGH_RISK";
+
+/* =====================================================================
+   GEOMETRY
+   ===================================================================== */
+function roadPath(r){
+  if(r.link){
+    const a = S.roads.find(x => x.id === r.link[0]), b = S.roads.find(x => x.id === r.link[1]);
+    if(a && b) return [{lat:a.lat,lng:a.lng},{lat:b.lat,lng:b.lng}];
+  }
+  const h = r.heading*Math.PI/180, half = r.lengthM/2;
+  const dLat = Math.cos(h)*half/111320, dLng = Math.sin(h)*half/(111320*Math.cos(r.lat*Math.PI/180));
+  return [-1,-.5,0,.5,1].map(t => ({ lat:r.lat+dLat*t, lng:r.lng+dLng*t }));
+}
+function toXY(p, refLat){ return { x:p.lng*111320*Math.cos(refLat*Math.PI/180), y:p.lat*110540 }; }
+function distPointSeg(p, a, b){
+  const P=toXY(p,p.lat), A=toXY(a,p.lat), B=toXY(b,p.lat), dx=B.x-A.x, dy=B.y-A.y, len=dx*dx+dy*dy;
+  let t = len ? ((P.x-A.x)*dx+(P.y-A.y)*dy)/len : 0; t = Math.max(0, Math.min(1, t));
+  return Math.hypot(P.x-(A.x+t*dx), P.y-(A.y+t*dy));
+}
+function distToRoad(p, r){
+  const path = roadPath(r); let best = Infinity;
+  for(let i=0;i<path.length-1;i++) best = Math.min(best, distPointSeg(p, path[i], path[i+1]));
+  return best;
+}
+function relinkStretches(){
+  S.roads.forEach(r => { if(r.link){ const p = roadPath(r); r.lat = (p[0].lat+p[1].lat)/2; r.lng = (p[0].lng+p[1].lng)/2; r.located = true; } });
+}
+
+/* =====================================================================
+   MAP — Google Maps first (key= parameter), OpenStreetMap if it cannot load
+   ===================================================================== */
+const MapView = {
+  kind:null, map:null, shapes:new Map(), extra:[],
+
+  async init(){
+    try { await this.initGoogle(); }
+    catch(e){ console.warn(e); await this.initLeaflet(e.message); }
+    renderAll(); this.focusCity();
+    if(this.kind === "google") geocodeAll();
+  },
+
+  loadScript(src){
+    return new Promise((res, rej) => {
+      const s = document.createElement("script"); s.src = src; s.async = true;
+      s.onload = res; s.onerror = () => rej(new Error("Could not load " + src.split("?")[0]));
+      document.head.appendChild(s);
+    });
+  },
+
+  initGoogle(){
+    if(!CONFIG.googleMapsApiKey) return Promise.reject(new Error("No Google Maps key set."));
+    return new Promise((resolve, reject) => {
+      let done = false;
+      const fail = m => { if(!done){ done = true; reject(new Error(m)); } };
+      window.gm_authFailure = () => fail("Google Maps rejected the key. Check the website restriction, enabled APIs and billing.");
+      window.__gmReady = () => {
+        try{
+          const c = CITIES[S.city] || CITIES.kanpur;
+          this.map = new google.maps.Map($("map"), { center:c.center, zoom:c.zoom, mapTypeControl:false, streetViewControl:false,
+            fullscreenControl:false, gestureHandling:"greedy",
+            styles:[{featureType:"poi",stylers:[{visibility:"off"}]},{featureType:"transit",stylers:[{visibility:"off"}]}] });
+          this.kind = "google"; done = true; resolve();
+        }catch(e){ fail(e.message); }
+      };
+      // The API key goes in the key= query parameter, as Google requires.
+      const url = "https://maps.googleapis.com/maps/api/js?key=" + encodeURIComponent(API_KEY) + "&v=weekly&callback=__gmReady";
+      this.loadScript(url).catch(e => fail(e.message));
+      setTimeout(() => fail("Google Maps took too long to respond."), 9000);
+    });
+  },
+
+  async initLeaflet(reason){
+    $("map").innerHTML = "";
+    const l = document.createElement("link"); l.rel = "stylesheet";
+    l.href = "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"; document.head.appendChild(l);
+    await this.loadScript("https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js");
+    const c = CITIES[S.city] || CITIES.kanpur;
+    this.map = L.map("map").setView([c.center.lat, c.center.lng], c.zoom);
+    L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom:19, attribution:"© OpenStreetMap contributors" }).addTo(this.map);
+    this.kind = "leaflet";
+    showMapMsg("Showing OpenStreetMap instead of Google Maps. " + reason);
+  },
+
+  rm(o){ this.kind === "google" ? o.setMap(null) : o.remove(); },
+  clear(){ this.shapes.forEach(a => a.forEach(o => this.rm(o))); this.shapes.clear(); this.extra.forEach(o => this.rm(o)); this.extra = []; },
+
+  draw(roads){
+    if(!this.map) return;
+    const want = new Set(roads.map(r => r.id));
+    for(const [id, objs] of [...this.shapes]) if(!want.has(id)){ objs.forEach(o => this.rm(o)); this.shapes.delete(id); }
+    roads.forEach(r => {
+      const lvl = levelOf(r), col = COLOR[lvl], sel = r.id === S.selected;
+      const weight = sel ? 10 : 7, radius = lvl==="HIGH_RISK" ? 320 : lvl==="MONITOR" ? 220 : 0;
+      let objs = this.shapes.get(r.id);
+      const path = roadPath(r);
+      if(this.kind === "google"){
+        if(!objs){
+          const line = new google.maps.Polyline({ map:this.map });
+          const halo = new google.maps.Circle({ map:this.map, strokeWeight:0, zIndex:1, clickable:false });
+          line.addListener("click", () => selectRoad(r.id, false));
+          objs = [line, halo]; this.shapes.set(r.id, objs);
+        }
+        objs[0].setOptions({ path, strokeColor:col, strokeOpacity:.95, strokeWeight:weight, zIndex:sel?9:5 });
+        objs[1].setOptions({ center:{lat:r.lat,lng:r.lng}, fillColor:col, fillOpacity:radius?.16:0, radius:radius||1 });
+      } else {
+        if(!objs){
+          const line = L.polyline([]).addTo(this.map), halo = L.circle([r.lat,r.lng], { radius:1, stroke:false, interactive:false }).addTo(this.map);
+          line.on("click", () => selectRoad(r.id, false)); objs = [line, halo]; this.shapes.set(r.id, objs);
+        }
+        objs[0].setLatLngs(path.map(p => [p.lat,p.lng])); objs[0].setStyle({ color:col, weight, opacity:.95 });
+        objs[1].setLatLng([r.lat,r.lng]); objs[1].setStyle({ fillColor:col, fillOpacity:radius?.16:0 }); objs[1].setRadius(radius||1);
+      }
+    });
+  },
+
+  focusCity(){
+    if(!this.map) return;
+    const list = scoped(); if(!list.length) return;
+    const pts = list.flatMap(roadPath);
+    if(this.kind === "google"){ const b = new google.maps.LatLngBounds(); pts.forEach(p => b.extend(p)); this.map.fitBounds(b, 80); }
+    else this.map.fitBounds(pts.map(p => [p.lat,p.lng]), { padding:[50,50] });
+  },
+  focusRoad(r){
+    if(!this.map) return;
+    if(this.kind === "google"){ this.map.panTo({lat:r.lat,lng:r.lng}); this.map.setZoom(r.link ? 13 : 15); }
+    else this.map.setView([r.lat,r.lng], r.link ? 13 : 15);
+  },
+  drawRoutes(routes, best){
+    this.extra.forEach(o => this.rm(o)); this.extra = [];
+    if(this.kind !== "google") return;
+    const b = new google.maps.LatLngBounds();
+    routes.forEach((rt, i) => {
+      this.extra.push(new google.maps.Polyline({ map:this.map, path:rt.path, strokeColor:i===best?"#1d6fa5":"#8aa0ad",
+        strokeOpacity:i===best?1:.7, strokeWeight:i===best?6:4, zIndex:i===best?7:3 }));
+      rt.path.forEach(p => b.extend(p));
+    });
+    this.map.fitBounds(b, 80);
+  },
+  drawYou(pos){
+    if(!this.map) return;
+    this.extra.push(this.kind==="google"
+      ? new google.maps.Circle({ map:this.map, center:pos, radius:60, strokeColor:"#fff", strokeWeight:3, fillColor:"#1d6fa5", fillOpacity:1, zIndex:20 })
+      : L.circle([pos.lat,pos.lng], {radius:60,color:"#fff",weight:3,fillColor:"#1d6fa5",fillOpacity:1}).addTo(this.map));
+  }
+};
+function showMapMsg(t){ const m = $("mapMsg"); m.textContent = t; m.classList.add("show"); clearTimeout(showMapMsg.t); showMapMsg.t = setTimeout(() => m.classList.remove("show"), 10000); }
+
+/* Find real positions with the Google Geocoding API (falls back to the approximate ones). */
+async function geocodeAll(){
+  if(MapView.kind !== "google") return;
+  const g = new google.maps.Geocoder(); let ok = 0, fail = 0, err = "";
+  for(const r of S.roads){
+    if(r.link || !r.geo) continue;
+    const c = CITIES[r.city]?.center;
+    try{
+      const res = await g.geocode({ address:r.geo, region:"IN" });
+      const loc = res.results[0]?.geometry.location;
+      if(loc && c && Math.abs(loc.lat()-c.lat) < .4 && Math.abs(loc.lng()-c.lng) < .4){ r.lat = loc.lat(); r.lng = loc.lng(); r.located = true; ok++; }
+      else fail++;
+    }catch(e){ fail++; err = e.message || String(e); if(/denied|not authorized|disabled|key/i.test(err)) break; }
+  }
+  relinkStretches(); renderAll(); MapView.focusCity();
+  if(fail) showMapMsg(`Located ${ok} of ${ok+fail} places with Google. The rest use approximate positions.` + (err ? " Enable the Geocoding API on your key to place them exactly." : ""));
+}
+
+/* =====================================================================
+   RENDERING
+   ===================================================================== */
+function alertText(r, lvl){
+  return lvl === "HIGH_RISK"
+    ? `⚠️ Waterlogging Alert: ${r.name} may be waterlogged. Please consider an alternative route.`
+    : `${r.name} is nearing the ${refOf(r)} ${unit()} it has been reported at before (now ${Math.round(S.v)} ${unit()}). Keep watching.`;
+}
+
+function renderKpis(){
+  const list = scoped(), c = { NORMAL:0, MONITOR:0, HIGH_RISK:0, UNRATED:0 };
+  list.forEach(r => c[levelOf(r)]++);
+  $("kpis").innerHTML =
+    `<div class="kpi"><b>${list.length}</b><span>Locations</span></div>
+     <div class="kpi ok"><b>${c.NORMAL}</b><span>Normal</span></div>
+     <div class="kpi warn"><b>${c.MONITOR}</b><span>Monitor</span></div>
+     <div class="kpi bad"><b>${c.HIGH_RISK}</b><span>High risk</span></div>
+     <div class="kpi mute"><b>${c.UNRATED}</b><span>No ${unit()} data</span></div>`;
+  $("alertN").textContent = c.HIGH_RISK || ""; $("alertN").classList.toggle("zero", !c.HIGH_RISK);
+  return c;
+}
+
+function renderAlerts(c){
+  const items = scoped().map(r => ({ r, lvl:levelOf(r), ratio:S.v/(refOf(r)||Infinity) })).filter(x => atRisk(x.lvl)).sort((a,b) => b.ratio-a.ratio);
+  const note = c.UNRATED ? `<p class="note">${c.UNRATED} location${c.UNRATED>1?"s have":" has"} documented waterlogging but no ${S.metric==="mm"?"rainfall":"duration"} figure in the records, so ${c.UNRATED>1?"they are":"it is"} shown in grey and not rated.</p>` : "";
+  $("alertList").innerHTML = (items.length ? items.map(({r,lvl}) => `
+    <button class="alert ${lvl}" data-id="${esc(r.id)}"><span class="bar"></span><span class="body">
+      <span class="t"><strong>${esc(r.name)}</strong><span class="badge ${lvl}">${RISK[lvl]}</span></span>
+      <p>${esc(alertText(r,lvl))}</p><small>${esc(CITIES[r.city]?.name||r.city)} · past severity: ${esc(r.severity)}</small></span></button>`).join("")
+    : `<div class="empty"><b>No locations at risk right now</b>${S.v < 1 ? "Drag the rain clock, or use Live timer when rain starts." : "The clock is still below every reported figure."}</div>`) + note;
+  $("alertList").querySelectorAll("[data-id]").forEach(b => b.onclick = () => selectRoad(b.dataset.id, true));
+}
+
+function meterHtml(r, lvl){
+  const ref = refOf(r);
+  if(ref == null) return `<div class="meter"><div class="fill UNRATED" style="width:0"></div></div>`;
+  const max = Math.max(ref*1.4, S.v, 1);
+  return `<div class="meter"><div class="fill ${lvl}" style="width:${Math.min(100,S.v/max*100)}%"></div><div class="mark" style="left:${ref/max*100}%" title="Reported at ${ref} ${unit()}"></div></div>`;
+}
+
+function renderRoads(){
+  const q = S.query.trim().toLowerCase();
+  const list = scoped().filter(r => (S.filter==="ALL" || levelOf(r)===S.filter) && (!q || r.name.toLowerCase().includes(q) || r.id.toLowerCase().includes(q)));
+  $("roadList").innerHTML = list.length ? list.map(r => {
+    const lvl = levelOf(r), ref = refOf(r);
+    return `<button class="road ${r.id===S.selected?"sel":""}" data-id="${esc(r.id)}">
+      <div class="r1"><strong>${esc(r.name)}</strong><span class="badge ${lvl}">${RISK[lvl]}</span></div>
+      <div class="r2">${esc(r.id)} · ${ref==null ? "no " + unit() + " figure reported" : "reported at " + ref + " " + unit()}</div>${meterHtml(r,lvl)}</button>`;
+  }).join("") : `<div class="empty"><b>No matching locations</b>Clear the search or choose another filter.</div>`;
+  $("roadList").querySelectorAll("[data-id]").forEach(b => b.onclick = () => selectRoad(b.dataset.id, true));
+}
+
+function renderDetail(){
+  const r = S.roads.find(x => x.id === S.selected);
+  if(!r){ $("detail").innerHTML = ""; return; }
+  const lvl = levelOf(r), ref = refOf(r), diff = ref == null ? null : ref - S.v;
+  const why = ref == null
+    ? `The records give no ${S.metric==="mm"?"rainfall":"rain duration"} figure for this location, so it can't be compared with the rain clock. It stays on the map as a documented waterlogging spot.`
+    : lvl==="HIGH_RISK" ? `The clock is at ${Math.round(S.v)} ${unit()}. Waterlogging was reported here alongside about ${ref} ${unit()}.`
+    : lvl==="MONITOR" ? `The clock has reached ${Math.round(S.v/ref*100)}% of the ${ref} ${unit()} reported with past waterlogging here.`
+    : `The clock is well under the ${ref} ${unit()} reported with past waterlogging here.`;
+  $("detail").innerHTML = `<div class="detail">
+    <div class="head"><div><h2>${esc(r.name)}</h2><p class="sub" style="margin:0">${esc(r.id)} · ${esc(CITIES[r.city]?.name||r.city)}</p></div><span class="badge ${lvl}">${RISK[lvl]}</span></div>
+    <div class="grid2">
+      <div class="cell"><span>Rain clock</span><b>${Math.round(S.v)} ${unit()}</b></div>
+      <div class="cell"><span>Reported at</span><b>${ref==null?"Not stated":ref+" "+unit()}</b></div>
+      <div class="cell"><span>${diff==null?"Gap":diff>0?"Left to reach it":"Past it by"}</span><b>${diff==null?"–":Math.abs(Math.round(diff))+" "+unit()}</b></div>
+      <div class="cell"><span>Worst past severity</span><b>${esc(r.severity)}</b></div>
+    </div>
+    ${meterHtml(r,lvl)}
+    <p class="why" style="margin-top:12px">${esc(why)} A risk level is a warning from past reports, not proof the road is flooded.</p>
+    <div class="row-btns">
+      <button class="btn small" id="dZoom">Zoom to road</button>
+      <button class="btn small" id="dRoute">Plan a detour</button>
+      <button class="btn small" id="dPrev">Preview traveller alert</button>
+    </div>
+    <h3 style="margin:16px 0 4px;font-size:13px">Recorded events</h3>
+    ${r.events.map(e => `<div class="evt"><b>${esc(e.date)}</b> · ${esc(e.sev)}<p>${esc(e.impact)}</p>
+      <p>Rain: ${e.mm==null?"not stated":e.mm+" mm"} (${esc(e.scope)}) · Duration: ${esc(e.dur)}</p>
+      ${safeUrl(e.src) ? `<div class="src"><a href="${esc(safeUrl(e.src))}" target="_blank" rel="noopener">Source report</a></div>` : ""}</div>`).join("")}
+    <p class="pos">${r.located ? "Position found with Google geocoding." : "Position is approximate until Google geocoding finds it."}</p></div>`;
+  $("dZoom").onclick = () => MapView.focusRoad(r);
+  $("dRoute").onclick = () => { openTab("route"); $("routeNote").textContent = `Tip: enter a trip that passes ${r.name}. Routes through it will be flagged while it is Monitor or High risk.`; };
+  $("dPrev").onclick = () => atRisk(lvl)
+    ? toast(lvl, "Waterlogging alert", alertText(r, lvl))
+    : toast("NORMAL", "No alert yet", `${r.name} is ${lvl==="UNRATED" ? "not rated for this measure" : "below its reported figure"}, so travellers would not be notified.`);
+}
+
+function renderHistory(){
+  const list = scoped(), max = Math.max(...list.map(r => r.refMm ?? 0), S.metric==="mm" ? S.v : 0, 100);
+  $("bars").innerHTML = list.slice().sort((a,b) => (a.refMm ?? 1e9) - (b.refMm ?? 1e9)).map(r => `
+    <div class="bar-row"><span class="name" title="${esc(r.name)}">${esc(r.name)}</span>
+    <div class="bar-track">${r.refMm==null ? "" : `<div class="bar-fill ${r.severity==="Severe"?"Severe":r.severity==="High"?"Moderate":""}" style="width:${r.refMm/max*100}%"></div>`}
+    ${S.metric==="mm" ? `<div class="bar-now" style="left:${Math.min(100,S.v/max*100)}%"></div>` : ""}</div>
+    <span>${r.refMm==null ? "n/a" : r.refMm+" mm"}</span></div>`).join("");
+  const rows = list.flatMap(r => r.events.map(e => ({ r, e }))).sort((a,b) => String(b.e.date).localeCompare(String(a.e.date)));
+  $("histTable").innerHTML = `<tr><th>Date</th><th>Location</th><th>Rain</th><th>Severity</th></tr>` +
+    rows.map(({r,e}) => `<tr><td>${esc(e.date)}</td><td>${esc(r.name)}</td><td>${e.mm==null?"n/a":e.mm+" mm"}</td><td>${esc(e.sev)}</td></tr>`).join("");
+}
+
+function renderClock(){
+  const m = METRICS[S.metric];
+  $("minNow").textContent = Math.round(S.v);
+  document.querySelector(".clock-time small").textContent = m.unit;
+  $("slider").max = m.max; $("slider").step = m.step;
+  if(S.mode !== "live") $("slider").value = Math.min(m.max, S.v);
+  $("scale").innerHTML = m.scale.map(n => `<span>${n}${n===m.max ? " " + m.unit : ""}</span>`).join("");
+  $("ticks").innerHTML = scoped().filter(r => refOf(r) != null && refOf(r) <= m.max).map(r => {
+    const lvl = levelOf(r);
+    return `<button class="tick ${lvl==="HIGH_RISK"?"high":lvl==="MONITOR"?"monitor":""}" style="left:${refOf(r)/m.max*100}%" title="${esc(r.name)} · ${refOf(r)} ${m.unit}" data-id="${esc(r.id)}" aria-label="${esc(r.name)} reported at ${refOf(r)} ${m.unit}"></button>`;
+  }).join("");
+  $("ticks").querySelectorAll("button").forEach(b => b.onclick = () => setValue(refOf(S.roads.find(r => r.id===b.dataset.id)), true));
+}
+
+function renderAll(){
+  renderClock(); const c = renderKpis(); renderAlerts(c); renderRoads(); renderDetail(); renderHistory();
+  MapView.draw(scoped()); checkTransitions(); renderImd();
+}
+
+function checkTransitions(){
+  scoped().forEach(r => {
+    const lvl = levelOf(r), prev = S.prevLevel.get(r.id) || "NORMAL";
+    if(lvl !== prev && S.v > 0 && (lvl==="HIGH_RISK" || (lvl==="MONITOR" && prev==="NORMAL")))
+      toast(lvl, lvl==="HIGH_RISK" ? "High waterlogging risk" : "Monitor", alertText(r,lvl));
+    S.prevLevel.set(r.id, lvl);
+  });
+}
+function toast(lvl, title, text){
+  const el = document.createElement("div"); el.className = "toast " + lvl;
+  el.innerHTML = `<b>${esc(title)}</b><p>${esc(text)}</p>`; $("toasts").prepend(el);
+  while($("toasts").children.length > 3) $("toasts").lastChild.remove();
+  setTimeout(() => el.remove(), 6500);
+}
+
+/* =====================================================================
+   INTERACTION
+   ===================================================================== */
+function openTab(name){
+  document.querySelectorAll("#tabs button").forEach(b => b.setAttribute("aria-selected", b.dataset.tab === name));
+  document.querySelectorAll(".pane").forEach(p => p.classList.toggle("active", p.id === "pane-" + name));
+}
+function selectRoad(id, pan){
+  S.selected = id; openTab("roads"); renderAll();
+  const r = S.roads.find(x => x.id === id); if(pan && r) MapView.focusRoad(r);
+}
+function setValue(v, fromUser){
+  if(fromUser && S.playing) togglePlay(false);
+  S.v = Math.max(0, v); renderAll();
+}
+function togglePlay(force){
+  S.playing = force ?? !S.playing;
+  $("playIcon").innerHTML = S.playing ? '<path d="M3 2h4v12H3zM9 2h4v12H9z" fill="currentColor"/>' : '<path d="M4 2l10 6-10 6z" fill="currentColor"/>';
+  $("playBtn").setAttribute("aria-label", S.playing ? "Pause simulation" : "Play rainfall simulation");
+  clearInterval(S.timer);
+  if(S.playing){
+    const m = METRICS[S.metric], step = S.metric === "mm" ? 2 : 1;
+    if(S.v >= m.max) S.v = 0;
+    S.timer = setInterval(() => { if(S.v >= m.max) return togglePlay(false); setValue(S.v + step); }, 100);
+  }
+}
+function setMode(mode){
+  togglePlay(false); clearInterval(S.liveTick); S.liveStart = null;
+  S.mode = mode; S.metric = mode === "mm" ? "mm" : "min"; S.v = 0; S.prevLevel.clear();
+  document.querySelectorAll("#modeSeg button").forEach(b => b.setAttribute("aria-pressed", b.dataset.mode === mode));
+  $("clock").classList.toggle("live", mode === "live");
+  $("clockLabel").innerHTML = mode === "live" ? "Live timer<br/>Press when rain begins. It counts continuous minutes."
+    : mode === "mm" ? "Rain this event<br/>Drag to see which locations reach their reported rainfall"
+    : "Continuous rain<br/>Only locations with a reported duration can be rated";
+  renderAll();
+}
+function startLive(){
+  S.liveStart = Date.now(); clearInterval(S.liveTick);
+  S.liveTick = setInterval(() => setValue((Date.now() - S.liveStart) / 60000), 5000); setValue(0);
+}
+
+document.querySelectorAll("#tabs button").forEach(b => b.onclick = () => openTab(b.dataset.tab));
+document.querySelectorAll("#cityTabs button").forEach(b => b.onclick = () => {
+  S.city = b.dataset.city;
+  document.querySelectorAll("#cityTabs button").forEach(x => x.setAttribute("aria-pressed", x === b));
+  if(S.selected && !scoped().some(r => r.id === S.selected)) S.selected = null;
+  renderAll(); MapView.focusCity();
+});
+document.querySelectorAll("#modeSeg button").forEach(b => b.onclick = () => setMode(b.dataset.mode));
+document.querySelectorAll("#filters button").forEach(b => b.onclick = () => {
+  S.filter = b.dataset.f; document.querySelectorAll("#filters button").forEach(x => x.setAttribute("aria-pressed", x === b)); renderRoads();
+});
+$("search").oninput = e => { S.query = e.target.value; renderRoads(); };
+$("slider").oninput = e => setValue(Number(e.target.value), true);
+$("playBtn").onclick = () => togglePlay();
+$("liveStart").onclick = startLive;
+$("liveReset").onclick = () => { clearInterval(S.liveTick); S.liveStart = null; setValue(0); };
+
+$("locBtn").onclick = () => {
+  if(!navigator.geolocation){ $("locNote").textContent = "This browser does not support location."; return; }
+  $("locNote").textContent = "Finding your location…";
+  navigator.geolocation.getCurrentPosition(pos => {
+    const me = { lat:pos.coords.latitude, lng:pos.coords.longitude }; MapView.drawYou(me);
+    const near = S.roads.map(r => ({ r, d:distToRoad(me, r), lvl:levelOf(r) })).filter(x => x.d <= 2000 && atRisk(x.lvl)).sort((a,b) => a.d - b.d);
+    if(near.length){
+      const n = near[0]; $("locNote").textContent = `${near.length} at-risk location(s) within 2 km. Nearest: ${n.r.name}, ${(n.d/1000).toFixed(1)} km away.`;
+      toast(n.lvl, "Alert near you", alertText(n.r, n.lvl));
+    } else $("locNote").textContent = "No Monitor or High-risk locations within 2 km of you right now.";
+  }, err => { $("locNote").textContent = "Location unavailable: " + err.message + ". Allow location access and try again."; }, { timeout:10000 });
+};
+
+$("useLocRoute").onclick = () => {
+  if(!navigator.geolocation){ $("routeLocNote").textContent = "This browser does not support location."; return; }
+  $("routeLocNote").textContent = "Finding your location…";
+  navigator.geolocation.getCurrentPosition(pos => {
+    const origin = `${pos.coords.latitude},${pos.coords.longitude}`;
+    $("from").value = origin;
+    $("routeLocNote").textContent = "Location found. Enter a destination and tap Find shortest safer route.";
+    $("to").focus();
+  }, err => { $("routeLocNote").textContent = "Location unavailable: " + err.message + ". Allow location access and try again."; }, {timeout:10000, enableHighAccuracy:true});
+};
+/* ---- route planner (Google Maps + Directions API) ---- */
+$("routeBtn").onclick = async () => {
+  const from = $("from").value.trim(), to = $("to").value.trim(), out = $("routeOut");
+  if(!from || !to){ out.innerHTML = `<div class="empty"><b>Enter both places</b>Add a start and a destination to compare routes.</div>`; return; }
+  const gmaps = `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(from)}&destination=${encodeURIComponent(to)}`;
+  if(MapView.kind !== "google"){ out.innerHTML = `<div class="empty"><b>Route comparison needs Google Maps</b>Google Maps is not active. <a href="${gmaps}" target="_blank" rel="noopener">Open this trip in Google Maps</a>.</div>`; return; }
+  out.innerHTML = `<div class="empty">Comparing routes…</div>`;
+  try{
+    const res = await new google.maps.DirectionsService().route({ origin:from, destination:to, travelMode:"DRIVING", provideRouteAlternatives:true, region:"IN" });
+    const risky = S.roads.map(r => ({ r, lvl:levelOf(r) })).filter(x => atRisk(x.lvl));
+    const routes = res.routes.map(rt => {
+      const path = rt.overview_path.map(p => ({ lat:p.lat(), lng:p.lng() })), leg = rt.legs[0];
+      const hits = risky.filter(({r}) => path.some(p => distToRoad(p, r) < 150));
+      return { path, hits, mins:Math.round(leg.duration.value/60), km:(leg.distance.value/1000).toFixed(1), via:rt.summary };
+    });
+    const score = x => x.hits.filter(h => h.lvl==="HIGH_RISK").length*100 + x.hits.length*10 + x.mins/1000;
+    const best = routes.reduce((bi, x, i) => score(x) < score(routes[bi]) ? i : bi, 0);
+    MapView.drawRoutes(routes, best);
+    out.innerHTML = routes.map((x,i) => `<div class="route-opt ${i===best?"best":""}">
+      <div class="a"><span>${i===best?"Recommended · ":""}via ${esc(x.via||"main road")}</span><span>${x.mins} min</span></div>
+      <small>${x.km} km · ${x.hits.length ? "passes " + x.hits.map(h => esc(h.r.name) + " (" + RISK[h.lvl] + ")").join(", ") : "avoids all flagged locations"}</small></div>`).join("") +
+      `<p class="note">Only locations currently marked Monitor or High risk are avoided. Google may not offer an option that avoids them.</p>`;
+  }catch(e){
+    out.innerHTML = `<div class="empty"><b>Could not get routes</b>${esc(e.message || String(e))}. Enable the Directions API for this key, or <a href="${gmaps}" target="_blank" rel="noopener">open the trip in Google Maps</a>.</div>`;
+  }
+};
+
+/* =====================================================================
+   IMD WEATHER CONTEXT
+   Official district warning and rainfall endpoints; never treated as a
+   road gauge or used to rewrite the historical road thresholds.
+   ===================================================================== */
+function setImd(state, text){ $("imdChip").className = "chip " + state; $("imdChipText").textContent = text; }
+function asRows(payload){
+  if(Array.isArray(payload)) return payload;
+  if(payload && typeof payload === "object"){
+    for(const k of ["data","Data","results","records"]) {
+      if(Array.isArray(payload[k])) return payload[k];
+      if(payload[k] && typeof payload[k] === "object") return asRows(payload[k]);
+    }
+    return [payload];
+  }
+  return [];
+}
+function cityMatches(row){
+  const district = String(row.District ?? row.district ?? row.DISTRICT ?? row.City ?? row.city ?? "").toLowerCase();
+  if(/kanpur/.test(district)) return S.city === "all" || S.city === "kanpur";
+  if(/gurugram|gurgaon/.test(district)) return S.city === "all" || S.city === "gurugram";
+  return false;
+}
+const dayWarning = (row, day) => row[`Day_${day}`] ?? row[`Day${day}`] ?? row[`day${day}_warning`] ?? row[`day_${day}`];
+const warningNames = {"1":"No warning","2":"Heavy rain","3":"Heavy snow","4":"Thunderstorm and lightning","5":"Hailstorm","6":"Dust storm","7":"Dust-raising winds","8":"Strong surface winds","9":"Heat wave","10":"Hot day","11":"Warm night","12":"Cold wave","13":"Cold day","14":"Ground frost","15":"Fog","16":"Very heavy rain","17":"Extremely heavy rain"};
+function describeWarning(value){
+  const raw = String(value ?? "").trim();
+  if(!raw || /^1$|no warning/i.test(raw)) return "";
+  return raw.split(",").map(code => warningNames[code.trim()] || code.trim()).filter(Boolean).join(", ");
+}
+function warningText(rows){
+  const matches = rows.filter(cityMatches);
+  if(!matches.length) return "No matching district warning returned";
+  const warnings = matches.map(row => {
+    const day = [1,2,3,4,5].map(n => describeWarning(dayWarning(row,n))).find(Boolean);
+    return day ? `${row.District || row.district}: ${day}` : "";
+  }).filter(Boolean);
+  return warnings.length ? `Warning: ${warnings.join(" · ")}` : "No active warning in returned district data";
+}
+function rainfallText(rows){
+  const latestByDistrict = new Map();
+  rows.filter(cityMatches).forEach(row => {
+    const name = row.District ?? row.district ?? "District";
+    const previous = latestByDistrict.get(name);
+    const date = row.Date ?? row.date ?? row["Daily Date"] ?? "";
+    if(!previous || String(date) > String(previous.Date ?? previous.date ?? previous["Daily Date"] ?? "")) latestByDistrict.set(name,row);
+  });
+  if(!latestByDistrict.size) return "No matching district rainfall returned";
+  return [...latestByDistrict.values()].map(row => {
+    const value = row["Daily Actual"] ?? row.daily_actual ?? row["Daily Actual (mm)"];
+    const date = row.Date ?? row.date ?? row["Daily Date"] ?? "latest report";
+    return value == null ? `${row.District ?? row.district}: rainfall data received` : `${row.District ?? row.district}: ${value} mm daily · ${date}`;
+  }).join(" · ");
+}
+function renderImd(){
+  const city = S.city === "all" ? "Kanpur / Gurugram" : CITIES[S.city]?.name || "selected city";
+  $("imdHeadline").textContent = S.imd.loading ? "Checking live weather…" : S.imd.error ? "Feed unavailable" : S.imd.updated ? `${city} · Updated ${new Date(S.imd.updated).toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"})}` : "Waiting for feed";
+  $("imdSummary").innerHTML = S.imd.error ? `${esc(S.imd.error)}<br/>Historical road evidence remains available below.` : S.imd.updated
+    ? `<b>${esc(warningText(asRows(S.imd.warning)))}</b><br/>${esc(rainfallText(asRows(S.imd.rainfall)))}<br/><small>District context only; not a road-level measurement.</small>`
+    : "Live district warnings and rainfall will appear when the backend and IMD credentials are configured.";
+  $("imdBtn").disabled = S.imd.loading;
+  $("imdRefresh").disabled = S.imd.loading;
+}
+let imdRequest = null;
+async function checkImd(){
+  if(imdRequest) return imdRequest;
+  S.imd.loading = true; S.imd.error = null; setImd("", "IMD feed: checking…"); renderImd();
+  imdRequest = Promise.all([CONFIG.imdWarningsUrl, CONFIG.imdRainfallUrl].map(async url => {
+    const res = await fetch(url, {headers:{Accept:"application/json"}, signal:AbortSignal.timeout(12000)});
+    const body = await res.json().catch(() => null);
+    if(!res.ok) throw new Error(body?.error || `IMD proxy returned HTTP ${res.status}`);
+    if(body == null) throw new Error("IMD returned an unreadable response.");
+    return body;
+  }));
+  try{
+    const results = await imdRequest;
+    S.imd.warning = results[0]; S.imd.rainfall = results[1]; S.imd.updated = Date.now(); S.imd.error = null;
+    setImd("good", "IMD feed: live");
+  }catch(e){
+    S.imd.error = /401|unauthorized/i.test(e.message)
+      ? "IMD rejected the configured credentials. Confirm the key and auth header settings on the backend."
+      : /503|not configured/i.test(e.message)
+        ? "IMD credentials are not configured on the backend. Set IMD_API_KEY and restart the server."
+        : e.name === "TimeoutError" ? "IMD did not respond within 12 seconds. Try again shortly." : e.message || "Could not reach the IMD backend.";
+    setImd("bad", "IMD feed: unavailable");
+  }finally{
+    imdRequest = null; S.imd.loading = false;
+  }
+  renderImd();
+}
+$("imdBtn").onclick = checkImd;
+$("imdRefresh").onclick = checkImd;
+checkImd();
+setInterval(checkImd, CONFIG.imdPollMs);
+/* =====================================================================
+   SPREADSHEET IMPORT — same layout as road_waterlogging_historical_records.xlsx
+   (header row starting with "City"). Rows are grouped by location.
+   ===================================================================== */
+function groupRows(rows){
+  const hi = rows.findIndex(r => String(r[0]).trim().toLowerCase() === "city");
+  if(hi < 0) throw new Error("No header row starting with 'City' found.");
+  const head = rows[hi].map(h => String(h).toLowerCase());
+  const col = f => head.findIndex(h => f(h));
+  const C = { city:col(h=>h==="city"), road:col(h=>h.includes("road")), date:col(h=>h.includes("date")), mm:col(h=>h.includes("(mm)")),
+    scope:col(h=>h.includes("scope")), dur:col(h=>h.includes("duration")), sev:col(h=>h.includes("severity")),
+    imp:col(h=>h.includes("impact")), src:col(h=>h.includes("source")) };
+  if(C.road < 0) throw new Error("No 'Road / location' column found.");
+  const map = new Map();
+  rows.slice(hi + 1).forEach(r => {
+    const name = String(r[C.road] ?? "").trim(); if(!name) return;
+    const city = /gur|ggn/i.test(String(r[C.city])) ? "gurugram" : "kanpur";
+    const clean = name.replace(/^nh-?8 at /i, "").replace(/ underpass$/i, "").split("/")[0].trim();
+    const key = city + "|" + clean.toLowerCase();
+    if(!map.has(key)) map.set(key, { city, name:clean, events:[] });
+    const mm = Number(r[C.mm]);
+    map.get(key).events.push(ev(String(r[C.date] ?? ""), r[C.mm] !== "" && Number.isFinite(mm) ? mm : null, String(r[C.scope] ?? "UNKNOWN"),
+      String(r[C.dur] ?? "UNKNOWN"), String(r[C.sev] ?? "UNKNOWN"), String(r[C.imp] ?? ""), String(r[C.src] ?? "")));
+  });
+  return [...map.values()].map((l, i) => {
+    const c = CITIES[l.city].center;
+    return normalize({ ...l, id:"IMP-" + String(i+1).padStart(2,"0"), geo:`${l.name}, ${CITIES[l.city].name}, India`,
+      lat:c.lat + ((i%4)-1.5)*.012, lng:c.lng + (Math.floor(i/4)-1)*.014, heading:(i*53)%180 });
+  });
+}
+$("fileInput").onchange = async e => {
+  const f = e.target.files[0]; if(!f) return;
+  try{
+    if(!window.XLSX) await MapView.loadScript("https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js");
+    const wb = XLSX.read(await f.arrayBuffer(), { type:"array" });
+    const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header:1, defval:"" });
+    const roads = groupRows(rows);
+    if(!roads.length){ showMapMsg("No usable rows found in that file."); return; }
+    S.roads = roads; S.selected = null; S.prevLevel.clear();
+    if(!roads.some(r => r.city === S.city)) S.city = roads[0].city;
+    document.querySelectorAll("#cityTabs button").forEach(x => x.setAttribute("aria-pressed", x.dataset.city === S.city));
+    setDataChip(f.name); MapView.clear(); renderAll(); MapView.focusCity(); geocodeAll();
+  }catch(err){ showMapMsg("Could not read that file: " + err.message); }
+  e.target.value = "";
+};
+function setDataChip(name){
+  const n = S.roads.reduce((a, r) => a + r.events.length, 0);
+  $("dataChip").className = "chip good"; $("dataChipText").textContent = `${name} · ${n} records · ${S.roads.length} locations`;
+}
+
+/* =====================================================================
+   START
+   ===================================================================== */
+if(EVIDENCE.length){
+  S.roads = EVIDENCE.map(normalize);
+  relinkStretches();
+  setDataChip(window.GARUDA_DATA.source);
+} else {
+  $("dataChip").className = "chip bad";
+  $("dataChipText").textContent = "Historical data unavailable";
+  showMapMsg("Historical workbook records could not be loaded. Restart the app backend and refresh.");
+}
+renderAll();
+MapView.init();
+
+</script>
+</body>
+</html>
