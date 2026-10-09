@@ -1,0 +1,14 @@
+[
+  {
+    "road_id": "DEL-001",
+    "road_name": "Road A",
+    "threshold_minutes": 60,
+    "severity": "HIGH"
+  },
+  {
+    "road_id": "DEL-002",
+    "road_name": "Road B",
+    "threshold_minutes": 90,
+    "severity": "MEDIUM"
+  }
+]
