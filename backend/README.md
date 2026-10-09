@@ -23,13 +23,15 @@ The health endpoint is `GET http://127.0.0.1:8000/api/health`. Risk routes are `
 
 ## Risk API integration status
 
-The routes and `RiskServiceAdapter` are implemented and dependency-injectable. By default the app returns HTTP 503 from risk routes until an M3 service instance is bound to `app.state.risk_service_adapter`. The frontend branch currently does not contain the M3 package, and no duplicate copy has been added. Bind the root `risk-engine/engine/service.py` implementation after it is integrated and its nullable-threshold fix is verified. The routes are contract-tested with a fake M3 facade; those tests exercise HTTP behavior, not M3 calculations.
+The routes are implemented and the adapter loads the root `risk-engine/engine/service.py` facade when configured. The M3 package was merged from `origin/main`; the nullable-threshold and unmapped-road fixes are covered by M3 regression tests. No second engine copy was created.
+
+Risk routes return HTTP 503 by default until an evidence-backed roads file is configured with `GARUDAROUTE_RISK_ROADS_FILE`. Supply explicit mappings with `GARUDAROUTE_RISK_ROAD_TO_LOCATION_JSON`, for example `{"ROAD_ID":"LOCATION_ID"}`. Unmapped roads remain `UNKNOWN` / `UNMAPPED`. Do not use the current `data/roads.json` synthetic thresholds for real traveller alerts.
 
 `GET /api/roads/risk` returns `{"roads": [...], "count": n}`. Risk assessments are passed through with M3's field names and enum values. Missing data, stale data, unmapped roads, and unavailable thresholds must not be displayed as safe. Unknown road IDs return 404; malformed timestamps and observations return 422; conflicting observations return 409.
 
 `POST /api/observations` is for demo/testing only. It updates the in-memory M3 service instance and is not a live rainfall feed or persistent storage. Observations are lost when the process restarts.
 
-See the root [`API_CONTRACT.md`](../API_CONTRACT.md) for the full request and response contract. The known M3 nullable-threshold serialization issue must be fixed upstream before binding and end-to-end integration tests can pass.
+See the root [`API_CONTRACT.md`](../API_CONTRACT.md) for the request and response contract. The backend test suite includes both route-contract tests with a fake facade and integration tests using M3's actual facade.
 
 ## Tests
 
@@ -45,4 +47,4 @@ Settings load from `GARUDAROUTE_*` environment variables and, for local developm
 
 ## Risk service boundary
 
-`app/services/risk_service_adapter.py` delegates to the published M3 facade methods and translates M3 exceptions to backend errors. Inject a `WaterloggingRiskService` instance through `RiskServiceAdapter(instance)`; the adapter intentionally does not construct a second risk engine.
+`app/services/risk_service_adapter.py` delegates to the published M3 facade methods and translates M3 exceptions to backend errors. `RiskServiceAdapter.from_roads_file(...)` loads the existing M3 service and requires an explicit road mapping; it does not construct a second risk engine or infer mappings.

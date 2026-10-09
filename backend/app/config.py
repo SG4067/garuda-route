@@ -1,5 +1,7 @@
 """Environment-backed application settings."""
 
+from pathlib import Path
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -14,6 +16,8 @@ class Settings(BaseSettings):
     app_name: str = "GarudaRoute API"
     environment: str = "development"
     debug: bool = False
+    risk_roads_file: Path | None = None
+    risk_road_to_location_json: str = "{}"
 
 
 settings = Settings()

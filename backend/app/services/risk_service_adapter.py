@@ -1,12 +1,15 @@
 """Thin adapter for M3's public ``WaterloggingRiskService`` facade.
 
-This layer delegates risk calculations and observation ingestion to M3. It only
-normalizes service exceptions and works around the current single-road
-unmapped exception by returning the matching batch assessment. The latter can
-be removed once the coordinated M3 change returns UNMAPPED directly.
+This layer delegates risk calculations and observation ingestion to M3 and
+normalizes service exceptions. It retains a compatibility fallback for older
+M3 facades that raised on a single-road unmapped query; the current facade
+returns the same UNKNOWN / UNMAPPED assessment in single and batch queries.
 """
 
 from datetime import datetime
+import json
+from pathlib import Path
+import sys
 from typing import Any
 
 
@@ -32,6 +35,42 @@ class RiskServiceAdapter:
 
     def __init__(self, implementation: object | None = None) -> None:
         self._implementation = implementation
+
+    @classmethod
+    def from_roads_file(
+        cls,
+        roads_file_path: Path,
+        road_to_location_json: str = "{}",
+    ) -> "RiskServiceAdapter":
+        """Load M3's facade from the configured root risk-engine package."""
+        try:
+            mapping = json.loads(road_to_location_json)
+        except json.JSONDecodeError as error:
+            raise ValueError("GARUDAROUTE_RISK_ROAD_TO_LOCATION_JSON must be a JSON object") from error
+        if not isinstance(mapping, dict) or any(
+            not isinstance(road_id, str)
+            or not road_id.strip()
+            or not isinstance(location_id, str)
+            or not location_id.strip()
+            for road_id, location_id in mapping.items()
+        ):
+            raise ValueError("Road-to-location mappings must be non-empty string pairs")
+        mapping = {road_id.strip(): location_id.strip() for road_id, location_id in mapping.items()}
+
+        repository_root = Path(__file__).resolve().parents[3]
+        risk_engine_root = repository_root / "risk-engine"
+        if str(risk_engine_root) not in sys.path:
+            sys.path.insert(0, str(risk_engine_root))
+
+        # M3 publishes this facade at risk-engine/engine/service.py. The folder
+        # is added to sys.path because its current package imports are top-level.
+        from engine.service import WaterloggingRiskService
+
+        implementation = WaterloggingRiskService.from_roads_file(
+            roads_file_path=roads_file_path,
+            road_to_location=mapping,
+        )
+        return cls(implementation)
 
     @property
     def is_configured(self) -> bool:
