@@ -1,13 +1,14 @@
-# TEAM BOARD
+# Team Board
 
-## PHASE 1 — FOUNDATION
+## M1 — Integration / Architecture
 
-### M1 — Integration
-- [x] Create project_spec.md
-- [ ] Review M3 implementation
-- [ ] Define API_CONTRACT.md
-- [ ] Define ARCHITECTURE.md
-- [ ] Create TEAM_BOARD.md
+- [x] project_spec.md
+- [ ] ARCHITECTURE.md
+- [ ] API_CONTRACT.md
+- [ ] DATA_SCHEMA.md
+- [ ] TEAM_BOARD.md
+- [ ] Review M3 facade
+- [ ] Integrate M2 + M3
 
 ### M2 — Historical Data
 - [x] Verify ten priority location records against the cited sources; document limitations
@@ -19,77 +20,35 @@
 
 Current data status: 213 location rows across 19 source/date groups; 10 claims are source-verified and 203 remain under review. None supports road-specific threshold derivation.
 
-### M3 — Risk Engine
+- [ ] Identify official sources
+- [ ] Collect first 5–10 records
+- [ ] Build historical CSV
+- [ ] Build historical JSON
+- [ ] Document provenance
+- [ ] Determine threshold candidates
+
+## M3 — Risk Engine
+
 - [x] Initial risk engine
-- [ ] Review architecture
-- [ ] Complete unit tests
-- [ ] Complete rainfall tracker
-- [ ] Document public interface
-- [ ] Commit stable version
+- [x] Initial unit tests
+- [ ] Remove dead code
+- [ ] Implement facade
+- [ ] Improve stale-data handling
+- [ ] Improve duplicate handling
+- [ ] Add facade tests
+- [ ] Finalize API interface
 
-### M4 — Frontend
-- [ ] Build dashboard shell
-- [ ] Build mock risk map
-- [ ] Build road detail panel
-- [ ] Build alert component
-- [ ] Define frontend data contract
-- [ ] Demonstrate mock flow
+## M4 — Frontend
 
----
+ON HOLD
 
-## PHASE 2 — FIRST INTEGRATION
+Do not start frontend integration until the API contract is stable.
+
+## Upcoming
 
 - [ ] Historical data → risk engine
-- [ ] Risk engine → API/JSON
-- [ ] API → frontend
-- [ ] Real historical records visible on map
-
----
-
-## PHASE 3 — LIVE RAINFALL
-
-- [ ] Test IMD API
-- [ ] Build IMD adapter
-- [ ] Normalize rainfall observations
-- [ ] Connect to rainfall tracker
-- [ ] Live risk update
-
----
-
-## PHASE 4 — ROUTING
-
-- [ ] Google Maps integration
-- [ ] Route calculation
-- [ ] Risk-aware route evaluation
-- [ ] Alternative route
-
----
-
-## PHASE 5 — ALERTS
-
-- [ ] Traveller warning
-- [ ] Nearby risky-road detection
-- [ ] Alert explanation
-- [ ] Demo notification
-
----
-
-## PHASE 6 — VALIDATION
-
-- [ ] Historical replay
-- [ ] Threshold validation
-- [ ] False-positive analysis
-- [ ] False-negative analysis
-- [ ] Limitations
-
----
-
-## PHASE 7 — FINAL
-
+- [ ] Real IMD data
+- [ ] Backend
+- [ ] Google Maps
+- [ ] Alerts
 - [ ] AWS deployment
-- [ ] UI polish
-- [ ] Error states
-- [ ] README
-- [ ] Architecture diagram
-- [ ] Demo dataset
-- [ ] 3-minute demo
