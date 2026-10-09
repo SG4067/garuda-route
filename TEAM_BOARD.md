@@ -10,11 +10,14 @@
 - [ ] Create TEAM_BOARD.md
 
 ### M2 — Historical Data
-- [ ] Find 5–10 real historical events
-- [ ] Build historical_waterlogging.csv
-- [ ] Build historical_waterlogging.json
-- [ ] Document sources
-- [ ] Identify which events support threshold analysis
+- [x] Verify ten priority location records against the cited sources; document limitations
+- [x] Build historical_waterlogging.csv from source-linked workbook rows
+- [x] Build historical_waterlogging.json from the same normalized records
+- [x] Document source domains, provenance and limitations
+- [x] Identify threshold suitability: current records are insufficient for a road-specific threshold
+- [x] Add initial FastAPI health-check scaffold
+
+Current data status: 213 location rows across 19 source/date groups; 10 claims are source-verified and 203 remain under review. None supports road-specific threshold derivation.
 
 ### M3 — Risk Engine
 - [x] Initial risk engine

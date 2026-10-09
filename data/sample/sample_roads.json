@@ -1,0 +1,24 @@
+{
+  "data_classification": "SYNTHETIC_TEST_DATA",
+  "warning": "These are fictional fixtures. No numeric threshold is supplied because the historical dataset does not establish one.",
+  "roads": [
+    {
+      "road_id": "SAMPLE-ROAD-001",
+      "road_name": "Synthetic Test Road A",
+      "threshold_minutes": null,
+      "threshold_status": "UNKNOWN",
+      "historical_event_count": 0,
+      "severity": null,
+      "evidence_event_ids": []
+    },
+    {
+      "road_id": "SAMPLE-ROAD-002",
+      "road_name": "Synthetic Test Road B",
+      "threshold_minutes": null,
+      "threshold_status": "UNKNOWN",
+      "historical_event_count": 0,
+      "severity": null,
+      "evidence_event_ids": []
+    }
+  ]
+}
