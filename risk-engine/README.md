@@ -116,7 +116,8 @@ all_risks = service.get_all_roads_risk()
 ### 4.3 Explicit Road-to-Location Mapping
 Road segments must be explicitly mapped to weather stations (`road_to_location: {"DEL-001": "IMD_DEL_01"}`).
 - The system does **not** assume `road_id == location_id`.
-- If a road has no mapping, `get_road_risk()` raises `RoadMappingNotFoundError`, and `get_all_roads_risk()` flags the road as `data_freshness: "UNMAPPED"`.
+- If a road has no mapping, both `get_road_risk()` and `get_all_roads_risk()` return the same `risk_level: "UNKNOWN"`, `data_freshness: "UNMAPPED"` assessment. No proximity or ID-based mapping is inferred.
+- If a road has no historical threshold, the threshold remains `None` in Python and serializes as JSON `null`; its risk remains `UNKNOWN`.
 
 ### 4.4 Risk Levels & Threshold Comparison
 $$\text{monitor\_threshold} = \text{historical\_threshold} \times 0.70$$

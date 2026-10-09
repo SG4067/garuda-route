@@ -167,18 +167,86 @@ class TestWaterloggingRiskService(unittest.TestCase):
             self.service.get_road_risk("UNKNOWN-ROAD-999")
 
     def test_09_missing_road_to_location_mapping(self):
-        """9. A road without a location mapping raises RoadMappingNotFoundError on get_road_risk, and produces error item in get_all_roads_risk."""
+        """9. An unmapped road returns the same UNKNOWN / UNMAPPED record in single and batch reads."""
         unmapped_service = WaterloggingRiskService.from_roads_file(
             roads_file_path=self.roads_file,
             road_to_location={},  # No mappings provided!
         )
-        with self.assertRaises(RoadMappingNotFoundError):
-            unmapped_service.get_road_risk("DEL-001")
+        eval_time = datetime.fromisoformat("2026-10-09T10:00:00+00:00")
+        single = unmapped_service.get_road_risk("DEL-001", as_of=eval_time)
+        all_roads = unmapped_service.get_all_roads_risk(as_of=eval_time)
+        batch = next(record for record in all_roads if record["road_id"] == "DEL-001")
+        self.assertEqual(single, batch)
+        self.assertEqual(single["risk_level"], "UNKNOWN")
+        self.assertEqual(single["data_freshness"], "UNMAPPED")
+        self.assertEqual(single["status"], "error")
+        self.assertIn("no configured rainfall", single["reason"])
 
-        all_roads = unmapped_service.get_all_roads_risk()
-        self.assertEqual(all_roads[0]["data_freshness"], "UNMAPPED")
-        self.assertEqual(all_roads[0]["status"], "error")
-        self.assertIn("no configured rainfall", all_roads[0]["reason"])
+    @staticmethod
+    def _service_with_unknown_threshold(mapped=True):
+        road = RoadRecord(
+            road_id="TEST-NULL",
+            road_name="Threshold Unknown Road",
+            threshold_minutes=None,
+            severity="UNKNOWN",
+        )
+        engine = RiskEngine(roads=[road])
+        mappings = {road.road_id: "LOC-NULL"} if mapped else {}
+        return WaterloggingRiskService(risk_engine=engine, road_to_location=mappings)
+
+    def test_null_threshold_without_observations_returns_unknown_and_null(self):
+        service = self._service_with_unknown_threshold(mapped=True)
+        assessment = service.get_road_risk(
+            "TEST-NULL",
+            as_of=datetime.fromisoformat("2026-10-09T10:00:00+00:00"),
+        )
+
+        self.assertEqual(assessment["status"], "no_data")
+        self.assertEqual(assessment["risk_level"], "UNKNOWN")
+        self.assertEqual(assessment["data_freshness"], "NO_DATA")
+        self.assertIsNone(assessment["historical_threshold_minutes"])
+
+    def test_mapped_observations_without_threshold_returns_unknown_and_null(self):
+        service = self._service_with_unknown_threshold(mapped=True)
+        service.ingest_observation({
+            "location_id": "LOC-NULL",
+            "timestamp": "2026-10-09T10:00:00Z",
+            "rainfall_intensity_mm_hr": 12.0,
+            "is_raining": True,
+        })
+        assessment = service.get_road_risk(
+            "TEST-NULL",
+            as_of=datetime.fromisoformat("2026-10-09T10:05:00+00:00"),
+        )
+
+        self.assertEqual(assessment["status"], "threshold_unavailable")
+        self.assertEqual(assessment["risk_level"], "UNKNOWN")
+        self.assertEqual(assessment["data_freshness"], "FRESH")
+        self.assertIsNone(assessment["historical_threshold_minutes"])
+
+    def test_unmapped_road_without_threshold_returns_unknown_and_null(self):
+        service = self._service_with_unknown_threshold(mapped=False)
+        assessment = service.get_road_risk(
+            "TEST-NULL",
+            as_of=datetime.fromisoformat("2026-10-09T10:00:00+00:00"),
+        )
+
+        self.assertEqual(assessment["status"], "error")
+        self.assertEqual(assessment["risk_level"], "UNKNOWN")
+        self.assertEqual(assessment["data_freshness"], "UNMAPPED")
+        self.assertIsNone(assessment["historical_threshold_minutes"])
+
+    def test_unmapped_unknown_assessment_matches_single_and_bulk_queries(self):
+        service = self._service_with_unknown_threshold(mapped=False)
+        eval_time = datetime.fromisoformat("2026-10-09T10:00:00+00:00")
+
+        single = service.get_road_risk("TEST-NULL", as_of=eval_time)
+        batch = service.get_all_roads_risk(as_of=eval_time)[0]
+
+        self.assertEqual(single, batch)
+        self.assertEqual(single["risk_level"], "UNKNOWN")
+        self.assertEqual(single["data_freshness"], "UNMAPPED")
+        self.assertIsNone(single["historical_threshold_minutes"])
 
     def test_10_stale_data_handling(self):
         """10. Read-time data freshness marks telemetry STALE without resetting duration or rain state."""

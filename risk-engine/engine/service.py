@@ -23,7 +23,7 @@ from engine.risk_engine import RiskEngine, RoadNotFoundError, EmptyRoadDatasetEr
 
 
 class RoadMappingNotFoundError(RiskEngineError, KeyError):
-    """Raised when a road ID has no configured rainfall observation location mapping."""
+    """Legacy exception retained for callers that import the old public name."""
     pass
 
 
@@ -107,6 +107,32 @@ class WaterloggingRiskService:
         """Get the mapped location ID for a given road ID."""
         return self._road_to_location.get(road_id)
 
+    @staticmethod
+    def _threshold_value(threshold_minutes: Optional[float]) -> Optional[float]:
+        """Round configured thresholds while preserving unavailable values as None."""
+        return round(threshold_minutes, 1) if threshold_minutes is not None else None
+
+    @staticmethod
+    def _unmapped_assessment(road: RoadRecord, eval_time: datetime) -> Dict[str, Any]:
+        """Build the common UNKNOWN / UNMAPPED response for single and batch reads."""
+        return {
+            "status": "error",
+            "road_id": road.road_id,
+            "road_name": road.road_name,
+            "location_id": None,
+            "current_duration_minutes": 0.0,
+            "historical_threshold_minutes": WaterloggingRiskService._threshold_value(
+                road.threshold_minutes
+            ),
+            "risk_level": RiskLevel.UNKNOWN.value,
+            "severity": road.severity,
+            "is_raining": False,
+            "data_freshness": "UNMAPPED",
+            "last_observation_timestamp": None,
+            "reason": f"Road ID '{road.road_id}' has no configured rainfall observation location mapping.",
+            "evaluated_at": eval_time.isoformat(),
+        }
+
     def ingest_observation(
         self,
         observation: Union[Dict[str, Any], RainfallObservation],
@@ -185,19 +211,16 @@ class WaterloggingRiskService:
             
         Raises:
             RoadNotFoundError: If road_id is unknown.
-            RoadMappingNotFoundError: If road_id has no mapped rainfall location.
         """
         road = self._risk_engine.get_road(road_id)
-
-        location_id = self._road_to_location.get(road_id)
-        if not location_id:
-            raise RoadMappingNotFoundError(
-                f"Road ID '{road_id}' has no configured rainfall observation location mapping."
-            )
 
         eval_time = as_of or datetime.now(timezone.utc)
         if eval_time.tzinfo is None:
             eval_time = eval_time.replace(tzinfo=timezone.utc)
+
+        location_id = self._road_to_location.get(road_id)
+        if not location_id:
+            return self._unmapped_assessment(road, eval_time)
 
         state = self._tracker.get_state(location_id)
 
@@ -209,7 +232,7 @@ class WaterloggingRiskService:
                 "road_name": road.road_name,
                 "location_id": location_id,
                 "current_duration_minutes": 0.0,
-                "historical_threshold_minutes": round(road.threshold_minutes, 1),
+                "historical_threshold_minutes": self._threshold_value(road.threshold_minutes),
                 "risk_level": RiskLevel.UNKNOWN.value,
                 "severity": road.severity,
                 "is_raining": False,
@@ -240,12 +263,12 @@ class WaterloggingRiskService:
             )
 
         return {
-            "status": "success",
+            "status": assessment.status,
             "road_id": road.road_id,
             "road_name": road.road_name,
             "location_id": location_id,
             "current_duration_minutes": round(state.continuous_duration_minutes, 1),
-            "historical_threshold_minutes": round(road.threshold_minutes, 1),
+            "historical_threshold_minutes": self._threshold_value(road.threshold_minutes),
             "risk_level": assessment.risk_level.value,
             "severity": road.severity,
             "is_raining": state.is_raining,
@@ -271,22 +294,7 @@ class WaterloggingRiskService:
         results: List[Dict[str, Any]] = []
         for road_id, road in self._risk_engine._roads.items():
             if road_id not in self._road_to_location:
-                # Include unmapped road cleanly in batch response
-                results.append({
-                    "status": "error",
-                    "road_id": road.road_id,
-                    "road_name": road.road_name,
-                    "location_id": None,
-                    "current_duration_minutes": 0.0,
-                    "historical_threshold_minutes": round(road.threshold_minutes, 1),
-                    "risk_level": "UNKNOWN",
-                    "severity": road.severity,
-                    "is_raining": False,
-                    "data_freshness": "UNMAPPED",
-                    "last_observation_timestamp": None,
-                    "reason": f"Road ID '{road.road_id}' has no configured rainfall observation location mapping.",
-                    "evaluated_at": eval_time.isoformat(),
-                })
+                results.append(self._unmapped_assessment(road, eval_time))
             else:
                 road_risk = self.get_road_risk(road_id=road_id, as_of=eval_time)
                 results.append(road_risk)
