@@ -1,0 +1,176 @@
+{
+  "source": "road_waterlogging_historical_records.xlsx",
+  "recordCount": 10,
+  "locationCount": 7,
+  "locations": [
+    {
+      "id": "KNP-01",
+      "city": "kanpur",
+      "name": "P Road",
+      "geo": "P Road, Kanpur, Uttar Pradesh, India",
+      "lat": 26.462,
+      "lng": 80.35,
+      "heading": 70,
+      "events": [
+        {
+          "date": "2022-10-05",
+          "mm": 55,
+          "scope": "Kanpur city total; day of report",
+          "dur": "UNKNOWN",
+          "sev": "High (reported depth)",
+          "impact": "Up to 2 ft of accumulated water; road named among affected localities.",
+          "src": "https://timesofindia.indiatimes.com/city/kanpur/weather-plays-a-spoilsport-this-dussehra-ravan-effigies-soaked-in-rain-at-many-places/articleshow/94693949.cms"
+        },
+        {
+          "date": "2025-07-12",
+          "mm": 35,
+          "scope": "Kanpur city total over previous 24 hours",
+          "dur": "Friday evening to Saturday 10:00 (event window; rainfall duration UNKNOWN)",
+          "sev": "UNKNOWN",
+          "impact": "Waterlogging reported on P Road following intermittent rain that became heavy early Saturday.",
+          "src": "https://timesofindia.indiatimes.com/city/kanpur/kanpur-roads-flooded-after-heavy-downpour/articleshow/122409642.cms"
+        }
+      ]
+    },
+    {
+      "id": "KNP-02",
+      "city": "kanpur",
+      "name": "Govind Nagar / Chawla Market",
+      "geo": "Chawla Market, Govind Nagar, Kanpur, India",
+      "lat": 26.44,
+      "lng": 80.319,
+      "heading": 20,
+      "events": [
+        {
+          "date": "2022-10-05",
+          "mm": 55,
+          "scope": "Kanpur city total; day of report",
+          "dur": "UNKNOWN",
+          "sev": "High (reported depth)",
+          "impact": "Up to 2 ft accumulated across listed affected areas; Govind Nagar named.",
+          "src": "https://timesofindia.indiatimes.com/city/kanpur/weather-plays-a-spoilsport-this-dussehra-ravan-effigies-soaked-in-rain-at-many-places/articleshow/94693949.cms"
+        },
+        {
+          "date": "2025-07-12",
+          "mm": 35,
+          "scope": "Kanpur city total over previous 24 hours",
+          "dur": "Friday evening to Saturday 10:00 (event window; rainfall duration UNKNOWN)",
+          "sev": "UNKNOWN",
+          "impact": "Waterlogging reported in Govind Nagar; no road-level water depth stated.",
+          "src": "https://timesofindia.indiatimes.com/city/kanpur/kanpur-roads-flooded-after-heavy-downpour/articleshow/122409642.cms"
+        }
+      ]
+    },
+    {
+      "id": "KNP-03",
+      "city": "kanpur",
+      "name": "Gwaltoli",
+      "geo": "Gwaltoli, Kanpur, Uttar Pradesh, India",
+      "lat": 26.458,
+      "lng": 80.34,
+      "heading": 110,
+      "events": [
+        {
+          "date": "2022-10-05",
+          "mm": 55,
+          "scope": "Kanpur city total; day of report",
+          "dur": "UNKNOWN",
+          "sev": "High (reported depth)",
+          "impact": "Up to 2 ft accumulated across listed affected areas; Gwaltoli named.",
+          "src": "https://timesofindia.indiatimes.com/city/kanpur/weather-plays-a-spoilsport-this-dussehra-ravan-effigies-soaked-in-rain-at-many-places/articleshow/94693949.cms"
+        }
+      ]
+    },
+    {
+      "id": "GGN-01",
+      "city": "gurugram",
+      "name": "Hero Honda Chowk (NH-8 and underpass)",
+      "geo": "Hero Honda Chowk, Gurugram, Haryana, India",
+      "lat": 28.429,
+      "lng": 77.01,
+      "heading": 80,
+      "events": [
+        {
+          "date": "2016-07-28 to 2016-07-29",
+          "mm": null,
+          "scope": "UNKNOWN",
+          "dur": "UNKNOWN",
+          "sev": "Severe (knee-deep water on NH-8 near the chowk)",
+          "impact": "Repeated rain and waterlogging stranded commuters; specific event report describes knee-deep water on NH-8 and disruption at Hero Honda Chowk.",
+          "src": "https://www.hindustantimes.com/gurgaon/traffic-mess-blame-game-prohibitory-orders-all-about-gurgaon-s-waterlogging-woes/story-PcNH0xdWYQECGbVR1Udb7K.html"
+        },
+        {
+          "date": "2018-08-28",
+          "mm": 128,
+          "scope": "Gurugram city rainfall associated with event",
+          "dur": "UNKNOWN",
+          "sev": "Severe (underpass remained submerged for more than 24 hours)",
+          "impact": "Underpass closed to commuters; multiple pumps and fire brigades used. Article associates inundation with 128 mm rainfall.",
+          "src": "https://indianexpress.com/article/cities/delhi/gurgaon-hero-honda-chowk-underpass-opened-still-submerged-delhi-rains-5331735/"
+        }
+      ]
+    },
+    {
+      "id": "GGN-02",
+      "city": "gurugram",
+      "name": "Rajiv Chowk",
+      "geo": "Rajiv Chowk, Gurugram, Haryana, India",
+      "lat": 28.457,
+      "lng": 77.027,
+      "heading": 30,
+      "events": [
+        {
+          "date": "2023-07-04",
+          "mm": 65,
+          "scope": "Gurugram city total by 16:30; district stations differ",
+          "dur": "UNKNOWN (report says heavy rain within a short span)",
+          "sev": "UNKNOWN",
+          "impact": "Waterlogging explicitly reported at Rajeev Chowk; city rainfall was 65 mm by 16:30.",
+          "src": "https://indianexpress.com/article/cities/delhi/gurgaon-heavy-rain-waterlogging-gmda-8752362/"
+        }
+      ]
+    },
+    {
+      "id": "GGN-03",
+      "city": "gurugram",
+      "name": "Sheetla Mata Road",
+      "geo": "Sheetla Mata Road, Gurugram, Haryana, India",
+      "lat": 28.465,
+      "lng": 77.016,
+      "heading": 100,
+      "refMin": 120,
+      "events": [
+        {
+          "date": "2023-07-04",
+          "mm": 230,
+          "scope": "Gurugram district total by 16:30 (per report; not road gauge)",
+          "dur": "About 2 hours of rain (report-level, not road-specific)",
+          "sev": "UNKNOWN (water depth not stated)",
+          "impact": "Waterlogging reported on Sheetla Mata Road after a short, intense rain spell; district rainfall and duration are area-wide report context.",
+          "src": "https://www.dailypioneer.com/uploads/2023/epaper/july/delhi-english-edition-2023-07-05.pdf"
+        }
+      ]
+    },
+    {
+      "id": "GGN-04",
+      "city": "gurugram",
+      "name": "Hero Honda Chowk to Rajiv Chowk stretch",
+      "geo": "",
+      "link": ["GGN-01", "GGN-02"],
+      "lat": 28.443,
+      "lng": 77.0185,
+      "heading": 45,
+      "events": [
+        {
+          "date": "2023-07-09",
+          "mm": 250,
+          "scope": "Gurugram district collective rainfall; event report",
+          "dur": "Heavy, continuous rainfall since Sunday morning; exact duration UNKNOWN",
+          "sev": "High (road waterlogging; depth UNKNOWN)",
+          "impact": "Waterlogging reported on the named stretch during the July 9 citywide disruption; district rainfall was about 250 mm.",
+          "src": "https://www.tribuneindia.com/news/haryana/heavy-rains-bring-gurugram-to-a-halt-524301/"
+        }
+      ]
+    }
+  ]
+}
