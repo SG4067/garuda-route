@@ -345,6 +345,7 @@ td{padding:8px 6px;border-bottom:1px solid #edf1f3;vertical-align:top}
 
 <script src="/config.js"></script>
 <script src="/records.js"></script>
+<script src="/risk-utils.js"></script>
 <script>
 "use strict";
 
@@ -882,10 +883,28 @@ $("routeBtn").onclick = async () => {
 
       // Check for waterlogging risk locations along the route
       const hits = risky.filter(({r}) => {
-        // Simplified check: if any path point is within 150m of a road
-        return path.some(p => {
-          return S.roads.some(road => distToRoad(p, road) < 150);
-        });
+        // Use segment-based distance: measure from route line segments to road line segments
+        // This detects intersections even when waypoints miss the road
+        const road = S.roads.find(road => r.r === road.id); // find road by ID from risky array
+        if (!road) return false;
+        const roadPath = roadPath(road);
+        let minDist = Infinity;
+        // Check distance from each route segment to each road segment
+        for (let i = 0; i < path.length - 1; i++) {
+          const p1 = path[i];
+          const p2 = path[i + 1];
+          for (let j = 0; j < roadPath.length - 1; j++) {
+            const r1 = roadPath[j];
+            const r2 = roadPath[j + 1];
+            // Distance between two line segments
+            minDist = Math.min(minDist, window.riskUtils.segmentToSegmentDist(p1, p2, r1, r2));
+          }
+        }
+        // Also check vertices against road
+        for (const p of path) {
+          minDist = Math.min(minDist, distToRoad(p, road));
+        }
+        return minDist < 150; // 150m proximity threshold
       });
 
       return { path, hits, mins, km, via };
