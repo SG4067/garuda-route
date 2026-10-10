@@ -6,3 +6,4 @@ __pycache__/
 .pytest-tmp/
 .venv/
 venv/
+token.txt
