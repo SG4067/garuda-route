@@ -71,6 +71,19 @@ function createServer({
       return;
     }
 
+    if (request.method === "GET" && request.url === "/risk-utils.js") {
+      const riskUtilsPath = path.join(__dirname, "..", "frontend", "risk-utils.js");
+      try {
+        const content = fs.readFileSync(riskUtilsPath, "utf8");
+        response.writeHead(200, {"Content-Type": "application/javascript; charset=utf-8"});
+        response.end(content);
+      } catch {
+        response.writeHead(500, {"Content-Type": "application/json; charset=utf-8"});
+        response.end(JSON.stringify({error: "Could not load risk-utils.js"}));
+      }
+      return;
+    }
+
     if (request.method === "GET" && (request.url === "/" || request.url === "/index.html")) {
       response.writeHead(200, {"Content-Type": "text/html; charset=utf-8"});
       fs.createReadStream(frontendPath).pipe(response);
