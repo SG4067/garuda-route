@@ -48,7 +48,7 @@ button{cursor:pointer}
 .btn.small{padding:6px 10px;font-size:12px}
 
 .main{display:grid;grid-template-columns:minmax(0,1fr) 420px;min-height:0}
-.stage{position:relative;min-height:0;background:#d7e2e8}
+.stage{position:relative;min-height:0;background:#d7e2e8; z-index: 1}
 #map{position:absolute;inset:0}
 .panel{display:flex;flex-direction:column;min-height:0;background:var(--card);border-left:1px solid var(--line)}
 
@@ -60,7 +60,7 @@ button{cursor:pointer}
 .kpi.ok b{color:var(--ok)}.kpi.warn b{color:var(--warn)}.kpi.bad b{color:var(--bad)}
 
 /* ---------- Rain clock ---------- */
-.clock{position:absolute;z-index:3;left:12px;right:12px;bottom:12px;background:#0f2430f2;color:#fff;border-radius:14px;padding:14px 18px 12px;box-shadow:0 10px 30px #0f243055}
+.clock{position:absolute;z-index:1000;left:12px;right:12px;bottom:12px;background:#0f2430f2;color:#fff;border-radius:14px;padding:14px 18px 12px;box-shadow:0 10px 30px #0f243055}
 .clock-head{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
 .clock-time{font-family:var(--display);font-weight:800;font-size:38px;letter-spacing:-1px;line-height:1;min-width:130px}
 .clock-time small{font-size:15px;font-weight:600;color:#9db6c6;margin-left:4px}
@@ -306,6 +306,38 @@ td{padding:8px 6px;border-bottom:1px solid #edf1f3;vertical-align:top}
         <div id="routeOut" style="margin-top:14px"></div>
         <p class="note" id="routeNote"></p>
       </div>
+
+      <div class="pane" id="pane-demo" role="tabpanel">
+        <h2>Risk API Demo</h2>
+        <p class="sub">Assessments from the M3 FastAPI risk service. Distinct from historical evidence until reconciled.</p>
+        <div class="row-btns" style="margin-top: 8px">
+          <button class="btn small" id="demoRefresh">Refresh</button>
+        </div>
+        <div class="empty" id="demoEmpty" style="display:none; padding: 12px; color: var(--mute); border: 1px dashed var(--line); border-radius: var(--radius); margin: 12px 0;">
+          <b>No assessments available</b> The risk API demo is active but no roads are configured.
+        </div>
+        <div id="demoLoading" style="display:none; padding: 12px; color: var(--mute); border: 1px solid var(--line); border-radius: var(--radius); margin: 12px 0;">
+          <b>Loading risk assessments…</b>
+        </div>
+        <div id="demoError" style="display:none; padding: 12px; color: var(--bad); border: 1px solid var(--bad); border-radius: var(--radius); margin: 12px 0;">
+          <b>Error loading risk data</b>
+        </div>
+        <table id="demoTable" style="width:100%; border-collapse: collapse; margin: 12px 0; display: none;">
+          <thead>
+            <tr>
+              <th style="padding: 8px 6px; border-bottom: 1px solid var(--line); color: var(--mute); font-weight: 600; text-align: left;">Road ID</th>
+              <th style="padding: 8px 6px; border-bottom: 1px solid var(--line); color: var(--mute); font-weight: 600; text-align: left;">Road Name</th>
+              <th style="padding: 8px 6px; border-bottom: 1px solid var(--line); color: var(--mute); font-weight: 600; text-align: left;">Risk Level</th>
+              <th style="padding: 8px 6px; border-bottom: 1px solid var(--line); color: var(--mute); font-weight: 600; text-align: left;">Data Freshness</th>
+              <th style="padding: 8px 6px; border-bottom: 1px solid var(--line); color: var(--mute); font-weight: 600; text-align: left;">Duration (min)</th>
+              <th style="padding: 8px 6px; border-bottom: 1px solid var(--line); color: var(--mute); font-weight: 600; text-align: left;">Threshold (min)</th>
+              <th style="padding: 8px 6px; border-bottom: 1px solid var(--line); color: var(--mute); font-weight: 600; text-align: left;">Last Observation</th>
+              <th style="padding: 8px 6px; border-bottom: 1px solid var(--line); color: var(--mute); font-weight: 600; text-align: left;">Explanation</th>
+            </tr>
+          </thead>
+          <tbody id="demoTableBody"></tbody>
+        </table>
+      </div>
     </aside>
   </div>
 </div>
@@ -353,7 +385,8 @@ const S = {
   imd: { warning:null, rainfall:null, updated:null, error:null, loading:false },
   roads: [], city: "kanpur", filter: "ALL", query: "", selected: null,
   mode: "mm", metric: "mm", v: 0, liveStart: null, playing: false, timer: null, liveTick: null,
-  prevLevel: new Map()
+  prevLevel: new Map(),
+  demo: { loading:false, error:null, updated:null, roads:[] }
 };
 const $ = id => document.getElementById(id);
 const RISK = { NORMAL:"Normal", MONITOR:"Monitor", HIGH_RISK:"High risk", UNRATED:"No trigger data" };
@@ -885,10 +918,65 @@ async function checkImd(){
   }
   renderImd();
 }
+async function loadDemoRisk() {
+  S.demo.loading = true; S.demo.error = null; $("#demoLoading").show(); $("#demoEmpty").hide(); $("#demoError").hide(); $("#demoTable").hide();
+  try {
+    const res = await fetch("/api/risk/roads", { headers: { Accept: "application/json" } });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    S.demo.roads = data.roads || [];
+    S.demo.updated = Date.now();
+    renderDemoRisk();
+  } catch (error) {
+    S.demo.error = error.message || "Could not reach the Risk API.";
+    $("#demoError").textContent = "Error loading risk data: " + S.demo.error;
+    $("#demoError").show(); $("#demoLoading").hide();
+  } finally {
+    S.demo.loading = false; $("#demoLoading").hide(); renderDemoRisk();
+  }
+}
+
+function renderDemoRisk(){
+  const roads = S.demo.roads;
+  const levelLabels = { NORMAL:"Normal", MONITOR:"Monitor", HIGH_RISK:"High risk", UNKNOWN:"Unknown", NO_DATA:"No data", STALE:"Stale", UNMAPPED:"Unmapped" };
+  const levelColor = { NORMAL:"#168a5c", MONITOR:"#e0a21a", HIGH_RISK:"#cf3a35", UNKNOWN:"#5f7f94", NO_DATA:"#6b7280", STALE:"#b57a0a", UNMAPPED:"#8d99ae" };
+  const dfDisplay = { FRESH:"Fresh", STALE:"Stale", NO_DATA:"No data", UNMAPPED:"Unmapped" };
+  const tbody = $("#demoTableBody");
+  if(roads.length > 0){
+    tbody.innerHTML = roads.map(r => {
+      const lvl = r.risk_level || "UNKNOWN";
+      const df = r.data_freshness || "UNMAPPED";
+      const dur = r.current_duration_minutes != null ? String(r.current_duration_minutes) : "—";
+      const thresh = r.historical_threshold_minutes != null ? String(r.historical_threshold_minutes) : "—";
+      const lastObs = r.last_observation_timestamp ? new Date(r.last_observation_timestamp).toLocaleString() : "—";
+      const reason = r.reason || "—";
+      const statusClass = { NORMAL:"normal", MONITOR:"monitor", HIGH_RISK:"high", UNKNOWN:"unknown", NO_DATA:"no_data", STALE:"stale", UNMAPPED:"unmapped" }[lvl] || "unknown";
+      const lvlDisplay = levelLabels[lvl] || lvl;
+      return `<tr>
+        <td style="padding:6px 8px; border-bottom:1px solid var(--line);">${esc(r.road_id || "—")}</td>
+        <td style="padding:6px 8px; border-bottom:1px solid var(--line);">${esc(r.road_name || "—")}</td>
+        <td style="padding:6px 8px; border-bottom:1px solid var(--line);"><span class="badge ${statusClass}" style="background:${levelColor[lvl] || 'var(--mute)'};color:#fff">${RISK[lvl]||lvlDisplay}</span></td>
+        <td style="padding:6px 8px; border-bottom:1px solid var(--line);">${dfDisplay[df]||df}</td>
+        <td style="padding:6px 8px; border-bottom:1px solid var(--line);">${dur}</td>
+        <td style="padding:6px 8px; border-bottom:1px solid var(--line);">${thresh}</td>
+        <td style="padding:6px 8px; border-bottom:1px solid var(--line);">${lastObs}</td>
+        <td style="padding:6px 8px; border-bottom:1px solid var(--line);">${esc(reason)}</td>
+      </tr>`;
+    }).join("");
+    $("#demoTable").show(); $("#demoEmpty").hide();
+  } else {
+    tbody.innerHTML = "";
+    $("#demoEmpty").show();
+  }
+  $("#demoError").hide(); $("#demoLoading").hide();
+}
 $("imdBtn").onclick = checkImd;
 $("imdRefresh").onclick = checkImd;
 checkImd();
 setInterval(checkImd, CONFIG.imdPollMs);
+
+$("demoRefresh").onclick = loadDemoRisk;
+loadDemoRisk();
 /* =====================================================================
    SPREADSHEET IMPORT — same layout as road_waterlogging_historical_records.xlsx
    (header row starting with "City"). Rows are grouped by location.
