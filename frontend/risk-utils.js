@@ -21,9 +21,12 @@ function ptToLocal(pt) {
  * - p1, p2: line segment 1 (each point has {lat, lng})
  * - p3, p4: line segment 2 (each point has {lat, lng})
  * Returns the shortest distance between the two segments in meters.
- * Uses the same planar algorithm as the original frontend code.
+ * Uses a robust 2D segment-distance algorithm with explicit intersection
+ * detection and proper handling of degenerate cases.
+ * Planar approximation suitable for regional routes.
  */
 function segmentToSegmentDist(p1, p2, p3, p4) {
+  // Project all four geographic points into one shared local coordinate system
   const A = ptToLocal(p1), B = ptToLocal(p2);
   const C = ptToLocal(p3), D = ptToLocal(p4);
 
@@ -35,25 +38,122 @@ function segmentToSegmentDist(p1, p2, p3, p4) {
   const ABlen2 = ABx * ABx + ABy * ABy;
   const CDlen2 = CDx * CDx + CDy * CDy;
 
+  // If both segments are points
+  if (ABlen2 === 0 && CDlen2 === 0) {
+    return Math.hypot(A.x - C.x, A.y - C.y);
+  }
+
+  // If first segment is a point, find its distance to segment CD
+  if (ABlen2 === 0) {
+    return pointToSegmentDist(A, C, D);
+  }
+
+  // If second segment is a point, find its distance to segment AB
+  if (CDlen2 === 0) {
+    return pointToSegmentDist(C, A, B);
+  }
+
+  // Compute closest points on the infinite lines AB and CD
+  const ACx = C.x - A.x, ACy = A.y - C.y;
+  const BCx = B.x - C.x, BCy = B.y - C.y;
+  const denominator = ABx * CDy - ABy * CDx;
+
+  // Parallel case: denominator near zero
+  if (Math.abs(denominator) < 1e-12) {
+    // Segments are parallel; minimum of the four endpoint-to-segment distances
+    return Math.min(
+      pointToSegmentDist(A, C, D),
+      pointToSegmentDist(B, C, D),
+      pointToSegmentDist(C, A, B),
+      pointToSegmentDist(D, A, B)
+    );
+  }
+
+  // General case: closest points on the infinite lines
+  let s = ((ACx * CDy - ACy * CDx) / denominator);
+  let t = ((ACx * ABy - ACy * ABx) / denominator);
+
+  // Check if closest points fall within both segments
+  const sInRange = s >= 0 && s <= 1;
+  const tInRange = t >= 0 && t <= 1;
+
+  if (sInRange && tInRange) {
+    // Closest points are within both segments — return their distance
+    const closestA = { x: A.x + s * ABx, y: A.y + s * ABy };
+    const closestC = { x: C.x + t * CDx, y: C.y + t * CDy };
+    return Math.hypot(closestA.x - closestC.x, closestA.y - closestC.y);
+  }
+
+  // Closest points on the infinite lines fall outside the segments.
+  // Return the minimum of the four endpoint-to-segment distances.
+  return Math.min(
+    pointToSegmentDist(A, C, D),
+    pointToSegmentDist(B, C, D),
+    pointToSegmentDist(C, A, B),
+    pointToSegmentDist(D, A, B)
+  );
+}
+
+/**
+ * Calculate the distance from a point to a line segment in meters.
+ * pointToSegmentDist(p, a, b)
+ * - p: the point
+ * - a, b: the segment endpoints
+ * Returns the shortest distance from the point to the segment.
+ */
+function pointToSegmentDist(p, a, b) {
+  const ABx = b.x - a.x, ABy = b.y - a.y;
+  const APx = p.x - a.x, APy = p.y - a.y;
+  const ABlen2 = ABx * ABx + ABy * ABy;
+
+  // If the segment is a point
+  if (ABlen2 === 0) {
+    return Math.hypot(p.x - a.x, p.y - a.y);
+  }
+
+  // Project the point onto the infinite line, then clamp to the segment
+  let t = (APx * ABx + APy * ABy) / ABlen2;
+  t = Math.max(0, Math.min(1, t));
+
+  // The projected point on the segment
+  const proj = { x: a.x + t * ABx, y: a.y + t * ABy };
+  return Math.hypot(p.x - proj.x, p.y - proj.y);
+}
+
+/**
+ * Calculate the distance between two line segments in meters.
+ * segmentToSegmentDist(p1, p2, p3, p4)
+ * Uses the same planar approximation as the rest of the module.
+ * See segmentToSegmentDist above for full details.
+ * @deprecated Use segmentToSegmentDist instead.
+ * @private
+ */
+function _legacySegmentToSegmentDist(p1, p2, p3, p4) {
+  const A = ptToLocal(p1), B = ptToLocal(p2);
+  const C = ptToLocal(p3), D = ptToLocal(p4);
+
+  const ABx = B.x - A.x, ABy = B.y - A.y;
+  const CDx = D.x - C.x, CDy = D.y - C.y;
+
+  const ABlen2 = ABx * ABx + ABy * ABy;
+  const CDlen2 = CDx * CDx + CDy * CDy;
+
   if (ABlen2 === 0 && CDlen2 === 0) {
     return Math.hypot(A.x - C.x, A.y - C.y);
   }
   if (ABlen2 === 0) {
-    // A is point, find distance from A to segment CD
     const t = ((C.x - A.x) * CDx + (C.y - A.y) * CDy) / CDlen2;
     const tClamped = Math.max(0, Math.min(1, t));
     const proj = { x: C.x + tClamped * CDx, y: C.y + tClamped * CDy };
     return Math.hypot(A.x - proj.x, A.y - proj.y);
   }
   if (CDlen2 === 0) {
-    // C is point, find distance from C to segment AB
     const t = ((A.x - C.x) * ABx + (A.y - C.y) * ABy) / ABlen2;
     const tClamped = Math.max(0, Math.min(1, t));
     const proj = { x: A.x + tClamped * ABx, y: A.y + tClamped * ABy };
     return Math.hypot(C.x - proj.x, C.y - proj.y);
   }
 
-  // General case: closest points on two segments
   const ACx = C.x - A.x, ACy = A.y - C.y;
   const ADx = D.x - A.x, ADy = D.y - A.y;
   const BCx = B.x - C.x, BCy = B.y - C.y;
@@ -75,6 +175,7 @@ function segmentToSegmentDist(p1, p2, p3, p4) {
   const dy = closestA.y - closestC.y;
   return Math.hypot(dx, dy);
 }
+
 
 /**
  * Compute the route risk score using the same formula as frontend/index.html.
