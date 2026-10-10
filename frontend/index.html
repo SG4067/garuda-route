@@ -364,6 +364,15 @@ const CONFIG = {
   imdPollMs: 5 * 60 * 1000,
   riskLevels: { monitorAt: 0.75, highAt: 1.0 }
 };
+
+// Initialize Routes library
+let routesLibrary = null;
+async function initRoutesLibrary() {
+  if (routesLibrary) return routesLibrary;
+  const { Route } = await google.maps.importLibrary("routes");
+  routesLibrary = Route;
+  return Route;
+}
 const CITIES = {
   kanpur:   { name: "Kanpur",   center: { lat: 26.4499, lng: 80.3319 }, zoom: 12 },
   gurugram: { name: "Gurugram", center: { lat: 28.4595, lng: 77.0266 }, zoom: 12 }
@@ -807,24 +816,94 @@ $("routeBtn").onclick = async () => {
   if(!from || !to){ out.innerHTML = `<div class="empty"><b>Enter both places</b>Add a start and a destination to compare routes.</div>`; return; }
   const gmaps = `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(from)}&destination=${encodeURIComponent(to)}`;
   if(MapView.kind !== "google"){ out.innerHTML = `<div class="empty"><b>Route comparison needs Google Maps</b>Google Maps is not active. <a href="${gmaps}" target="_blank" rel="noopener">Open this trip in Google Maps</a>.</div>`; return; }
-  out.innerHTML = `<div class="empty">Comparing routes…</div>`;
+
+  // Initialize Routes library
+  const Route = await initRoutesLibrary();
+
+  // Parse origin coordinates if provided as "lat, lng"
+  let originPos = null;
+  const fromCoordMatch = from.match(/^\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*$/);
+  if (fromCoordMatch) {
+    const lat = parseFloat(fromCoordMatch[1]);
+    const lng = parseFloat(fromCoordMatch[2]);
+    if (Number.isFinite(lat) && Number.isFinite(lng) && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
+      originPos = { lat, lng };
+    }
+  }
+
+  // Parse destination coordinates if provided as "lat, lng"
+  let destPos = null;
+  const toCoordMatch = to.match(/^\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*$/);
+  if (toCoordMatch) {
+    const lat = parseFloat(toCoordMatch[1]);
+    const lng = parseFloat(toCoordMatch[2]);
+    if (Number.isFinite(lat) && Number.isFinite(lng) && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
+      destPos = { lat, lng };
+    }
+  }
+
+  // Build origin and destination for Routes API
+  // Routes API expects { lat, lng } objects or address strings
+  const origin = originPos || from;
+  const destination = destPos || to;
+
+  out.innerHTML = `<div class="empty">Calculating routes…</div>`;
   try{
-    const res = await new google.maps.DirectionsService().route({ origin:from, destination:to, travelMode:"DRIVING", provideRouteAlternatives:true, region:"IN" });
-    const risky = S.roads.map(r => ({ r, lvl:levelOf(r) })).filter(x => atRisk(x.lvl));
-    const routes = res.routes.map(rt => {
-      const path = rt.overview_path.map(p => ({ lat:p.lat(), lng:p.lng() })), leg = rt.legs[0];
-      const hits = risky.filter(({r}) => path.some(p => distToRoad(p, r) < 150));
-      return { path, hits, mins:Math.round(leg.duration.value/60), km:(leg.distance.value/1000).toFixed(1), via:rt.summary };
+    const route = await Route.computeRoutes({
+      origin: origin,
+      destination: destination,
+      travelMode: "DRIVING",
+      routeModifiers: {},
+      computeAlternativeRoutes: true,
+      fields: ["distanceMeters","durationMillis","description","path","warnings"]
     });
-    const score = x => x.hits.filter(h => h.lvl==="HIGH_RISK").length*100 + x.hits.length*10 + x.mins/1000;
+
+    if(!route || !route.routes || route.routes.length === 0){
+      out.innerHTML = `<div class="empty"><b>No routes found</b>Could not calculate a route between these locations. Try different coordinates or a destination place name.</div>`;
+      return;
+    }
+
+    // Normalize routes into existing structure
+    const risky = S.roads.map(r => ({ r, lvl:levelOf(r) })).filter(x => atRisk(x.lvl));
+    const routes = route.routes.map(rt => {
+      // Extract path from rt.path (per Google Maps Routes API)
+      // rt.path contains [{lat, lng}, ...] when 'path' field is requested
+      let path = rt.path || [];
+      // If path is empty and geometry is available as fallback, decode it
+      if (!path.length && rt.geometry && rt.geometry.encodePath) {
+        // Decode the polyline
+        const decoded = google.maps.geometry.decodePath(rt.geometry.encodePath);
+        path = decoded.map(p => ({ lat: p[0], lng: p[1] }));
+      }
+
+      const mins = Math.round(rt.durationMillis / 1000 / 60);
+      const km = (rt.distanceMeters / 1000).toFixed(1);
+      const via = rt.description || `${mins} min route`;
+
+      // Check for waterlogging risk locations along the route
+      const hits = risky.filter(({r}) => {
+        // Simplified check: if any path point is within 150m of a road
+        return path.some(p => {
+          return S.roads.some(road => distToRoad(p, road) < 150);
+        });
+      });
+
+      return { path, hits, mins, km, via };
+    });
+
+    // Score routes using existing logic
+    const score = x => x.hits.filter(h => h.lvl==="HIGH_RISK").length*100 + x.hits.filter(h => h.lvl==="MONITOR").length*10 + x.mins/1000;
     const best = routes.reduce((bi, x, i) => score(x) < score(routes[bi]) ? i : bi, 0);
+
     MapView.drawRoutes(routes, best);
+
     out.innerHTML = routes.map((x,i) => `<div class="route-opt ${i===best?"best":""}">
       <div class="a"><span>${i===best?"Recommended · ":""}via ${esc(x.via||"main road")}</span><span>${x.mins} min</span></div>
       <small>${x.km} km · ${x.hits.length ? "passes " + x.hits.map(h => esc(h.r.name) + " (" + RISK[h.lvl] + ")").join(", ") : "avoids all flagged locations"}</small></div>`).join("") +
       `<p class="note">Only locations currently marked Monitor or High risk are avoided. Google may not offer an option that avoids them.</p>`;
   }catch(e){
-    out.innerHTML = `<div class="empty"><b>Could not get routes</b>${esc(e.message || String(e))}. Enable the Directions API for this key, or <a href="${gmaps}" target="_blank" rel="noopener">open the trip in Google Maps</a>.</div>`;
+    console.error("Routes API error:", e);
+    out.innerHTML = `<div class="empty"><b>Could not get routes</b>${esc(e.message || String(e))}. <a href="${gmaps}" target="_blank" rel="noopener">Open this trip in Google Maps</a></div>`;
   }
 };
 
@@ -919,7 +998,11 @@ async function checkImd(){
   renderImd();
 }
 async function loadDemoRisk() {
-  S.demo.loading = true; S.demo.error = null; $("#demoLoading").show(); $("#demoEmpty").hide(); $("#demoError").hide(); $("#demoTable").hide();
+  S.demo.loading = true; S.demo.error = null;
+  $("demoLoading").style.display = "block";
+  $("demoEmpty").style.display = "none";
+  $("demoError").style.display = "none";
+  $("demoTable").style.display = "none";
   try {
     const res = await fetch("/api/risk/roads", { headers: { Accept: "application/json" } });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -929,10 +1012,13 @@ async function loadDemoRisk() {
     renderDemoRisk();
   } catch (error) {
     S.demo.error = error.message || "Could not reach the Risk API.";
-    $("#demoError").textContent = "Error loading risk data: " + S.demo.error;
-    $("#demoError").show(); $("#demoLoading").hide();
+    $("demoError").style.display = "block";
+    $("demoError").textContent = "Error loading risk data: " + S.demo.error;
+    $("demoLoading").style.display = "none";
   } finally {
-    S.demo.loading = false; $("#demoLoading").hide(); renderDemoRisk();
+    S.demo.loading = false;
+    $("demoLoading").style.display = "none";
+    renderDemoRisk();
   }
 }
 
@@ -941,7 +1027,7 @@ function renderDemoRisk(){
   const levelLabels = { NORMAL:"Normal", MONITOR:"Monitor", HIGH_RISK:"High risk", UNKNOWN:"Unknown", NO_DATA:"No data", STALE:"Stale", UNMAPPED:"Unmapped" };
   const levelColor = { NORMAL:"#168a5c", MONITOR:"#e0a21a", HIGH_RISK:"#cf3a35", UNKNOWN:"#5f7f94", NO_DATA:"#6b7280", STALE:"#b57a0a", UNMAPPED:"#8d99ae" };
   const dfDisplay = { FRESH:"Fresh", STALE:"Stale", NO_DATA:"No data", UNMAPPED:"Unmapped" };
-  const tbody = $("#demoTableBody");
+  const tbody = $("demoTableBody");
   if(roads.length > 0){
     tbody.innerHTML = roads.map(r => {
       const lvl = r.risk_level || "UNKNOWN";
@@ -963,12 +1049,14 @@ function renderDemoRisk(){
         <td style="padding:6px 8px; border-bottom:1px solid var(--line);">${esc(reason)}</td>
       </tr>`;
     }).join("");
-    $("#demoTable").show(); $("#demoEmpty").hide();
+    $("demoTable").style.display = "";
+    $("demoEmpty").style.display = "none";
   } else {
     tbody.innerHTML = "";
-    $("#demoEmpty").show();
+    $("demoEmpty").style.display = "none";
   }
-  $("#demoError").hide(); $("#demoLoading").hide();
+  $("demoError").style.display = "none";
+  $("demoLoading").style.display = "none";
 }
 $("imdBtn").onclick = checkImd;
 $("imdRefresh").onclick = checkImd;
