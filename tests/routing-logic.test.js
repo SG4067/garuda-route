@@ -62,6 +62,56 @@ describe('selectBestRoute - route selection', () => {
     assert(routes.length === 1, 'One route should not claim alternatives');
   });
 
+  // ============================================================
+  // Test: segmentToSegmentDist - intersection and distance cases
+  // ============================================================
+  describe('segmentToSegmentDist - intersection and distance', () => {
+    it('crossing segments have approximately zero distance', () => {
+      // Segment 1: from (0,0) to (10,0) at equator
+      // Segment 2: from (5,-5) to (5,5) at equator — crosses segment 1 at (5,0)
+      // At equator: 5 units in lat = 5 * 110540m, but they cross so distance should be ~0
+      const d = segmentToSegmentDist(Pt(0), Pt(10), PtLat(0, 5), PtLat(0, -5));
+      assert(d < 10, `Crossing segments should have near-zero distance, got ${d.toFixed(2)}m`);
+    });
+
+    it('segments touching at an endpoint have approximately zero distance', () => {
+      // Segment 1: from (0,0) to (10,0)
+      // Segment 2: from (10,0) to (10,5) — touches at endpoint (10,0)
+      const d = segmentToSegmentDist(Pt(0), Pt(10), Pt(10), Pt(0));
+      assert(d < 10, `Touching segments should have near-zero distance, got ${d.toFixed(2)}m`);
+    });
+
+    it('parallel segments 100 m apart are detected correctly', () => {
+      // Segment 1 at equator from lng=0 to lng=10
+      // Segment 2 100m north at equator (0.000905 deg lat ≈ 100m)
+      const d = segmentToSegmentDist(Pt(0), Pt(10), PtLat(0.0009, 0), PtLat(0.0009, 10));
+      assert(d > 90 && d < 110, `Parallel segments 100m apart should be ~100m, got ${d.toFixed(2)}m`);
+    });
+
+    it('segments 1 km apart are detected correctly', () => {
+      // 1km apart at equator: lat offset ≈ 1000/110540 ≈ 0.00905 deg
+      const d = segmentToSegmentDist(Pt(0), Pt(10), PtLat(0.009, 0), PtLat(0.009, 10));
+      assert(d > 900 && d < 1100, `Segments 1km apart should be ~1km, got ${d.toFixed(2)}m`);
+    });
+
+    it('degenerate point-to-point distance works', () => {
+      // Distance between two distinct points should be positive
+      const d = segmentToSegmentDist(Pt(5), Pt(5), Pt(10), Pt(10));
+      assert(d > 0, `Point-to-point distance should be positive, got ${d.toFixed(2)}m`);
+    });
+
+    it('degenerate point-to-segment distance works', () => {
+      // Distance from point at lng=0 to segment from lng=10 to lng=20
+      const d = segmentToSegmentDist(Pt(0), Pt(0), Pt(10), Pt(20));
+      assert(d > 0, `Point-to-segment distance should be positive, got ${d.toFixed(2)}m`);
+    });
+  });
+
+  // ============================================================
+  // Test 5: findRouteRiskHits - route-road interaction
+  // ============================================================
+
+
   it('same risky road counted only once per route via scoring formula', () => {
     // Two HIGH_RISK hits score 200; deduplication is
     // handled upstream in findRouteRiskHits / the engine.
