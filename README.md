@@ -81,6 +81,21 @@ git clone https://github.com/SG4067/garuda-route.git
 cd garuda-route
 ```
 
+### 2. Install the requirements
+
+#For Windows
+```bash
+python -m venv .venv
+.venv\Scripts\activate.bat
+pip install -r backend\requirements.txt
+```
+#For Linux & MacOS
+```bash
+python -m venv venv
+source venv/bin/activate
+pip install -r backend/requirements.txt
+```
+
 ### 2. Start the web app
 
 The Node server uses built-in Node modules; no root-level `npm install` is required for this server.
@@ -89,7 +104,7 @@ The Node server uses built-in Node modules; no root-level `npm install` is requi
 node backend/server.js
 ```
 
-Open <http://127.0.0.1:3000>.
+Open <http://127.0.0.1:3000> in any web browser.
 
 Without a Google Maps browser key, the app attempts to use OpenStreetMap. The historical dashboard can still be explored, but Google-specific route comparison and geocoding will not be available.
 
@@ -107,9 +122,9 @@ This produces simulated observations to demonstrate the risk-engine lifecycle. I
 
 The Node server reads configuration from environment variables. The checked-in `backend/server.js` does not automatically load a `.env` file, so export variables in the shell before starting the server, or use a local launcher that loads them securely.
 
-### Google Maps (optional)
+### Google Maps
 
-Set a browser key if you want Google Maps, geocoding, and Google-based route comparison:
+Set a browser key( Geocoding API | Geolocation API | Maps JavaScript API | Routes API | Weather API) if you want Google Maps, geocoding, and Google-based route comparison:
 
 ```bash
 export GOOGLE_MAPS_BROWSER_KEY="your-restricted-browser-key"
