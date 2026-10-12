@@ -42,10 +42,10 @@ A visual overview of Garuda Route's dashboard, map-based route visualization, hi
   </p>
   <p align="center">
     <img src="assets/history.png" alt="Historical evidence and event records" width="42%">
-    <img src="assets/map.png" alt="Route comparison" width="42%">
+    <img src="assets/controls.png" alt="Route comparison" width="42%">
   </p>
   <p align="center">
-    <img src="assets/controls.png" alt="Rainfall controls and map layers" width="42%">
+    <img src="assets/map.png" alt="Rainfall controls and map layers" width="42%">
   </p>
 </details>
 
