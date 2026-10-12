@@ -1,264 +1,125 @@
-# Data Schema
+# Data Schema and Semantics
 
-## 1. Purpose
+This document summarizes the current data shapes and points to the machine-readable schemas. The central rule is: **preserve what the source says, preserve what is unknown, and distinguish observed facts from derived values and software examples.**
 
-This document defines the data structures used by the Real-Time Road Waterlogging Alert and Route Diversion System.
+## 1. Current data layers
 
-It establishes common field names, types, units and meanings so that the historical-data module, rainfall tracker, risk engine and future backend can exchange data consistently.
+| File/layer | Shape and purpose | Important limitation |
+|---|---|---|
+| `data/raw/*.xlsx` | Original research workbook with 213 citywide incident/location rows, 24 rainfall-context rows, and 14 priority locations | Original source wording; not a verified road database |
+| `data/processed/historical_waterlogging.csv` and `.json` | Normalized records derived from the citywide incident sheet | 213 rows across 19 event groups; ten priority claims directly checked, 203 remain under review |
+| `frontend/data/road-waterlogging-records.json` | Small dashboard-facing format | `recordCount: 10`, `locationCount: 7`; values may be city/district/event context rather than road measurements |
+| `data/roads.json` | Risk-engine road records | Synthetic `DEL-001` and `DEL-002` examples; not production evidence |
+| M3 `RainfallObservation` | A timestamped observation supplied to the risk engine | API observation posting is demo/testing only and in-memory |
+| M3 `RiskAssessment` | Derived engine status for a configured road | Depends on thresholds, explicit mapping, observation availability, and freshness |
 
-## 2. General Rules
+The two historical data layers are not automatically joined. Do not assume the small dashboard JSON represents the entire 213-row workbook.
 
-1. Use JSON for application data exchanged between modules.
-2. Use ISO 8601 timestamps, preferably in UTC, for machine-to-machine communication.
-3. Use latitude and longitude in decimal degrees.
-4. Use rainfall intensity in millimetres per hour (mm/hr).
-5. Use rainfall duration in minutes.
-6. Use `null` for an unavailable value in JSON. Never invent a value to fill a gap.
-7. Keep source information for historical claims.
-8. Distinguish observed facts from derived values and assumptions.
-9. Keep the historical severity separate from the current calculated risk level.
-10. Fields in the examples are illustrative unless explicitly identified as verified data.
+## 2. Dashboard JSON
 
-## 3. Rainfall Observation
+Source: `frontend/data/road-waterlogging-records.json`.
 
-### Purpose
-
-Represents a rainfall-related observation reported by a weather source at a particular location and time.
-
-### Proposed JSON Example
-
-{
-  "location_id": "IMD_DEL_LODHI",
-  "timestamp": "2026-10-09T10:30:00Z",
-  "rainfall_intensity_mm_hr": 25.5,
-  "is_raining": true,
-  "latitude": 28.5892,
-  "longitude": 77.2215,
-  "source": "IMD_API"
-}
-
-The example values are illustrative and must not be treated as an actual observation.
-
-### Fields
+Top-level fields:
 
 | Field | Type | Meaning |
 |---|---|---|
-| `location_id` | String | Identifier for the observation location or station |
-| `timestamp` | String | Time associated with the observation |
-| `rainfall_intensity_mm_hr` | Number or null | Rainfall intensity, if actually provided or defensibly derived |
-| `is_raining` | Boolean or null | Whether rain is reported for the observation interval |
-| `latitude` | Number or null | Latitude of the observation location |
-| `longitude` | Number or null | Longitude of the observation location |
-| `source` | String | Source or adapter that supplied the observation |
+| `source` | string | Source workbook identifier recorded by the export |
+| `recordCount` | integer | Total historical event records across all locations |
+| `locationCount` | integer | Number of locations in the dashboard feed |
+| `locations` | array | Location records |
 
-### Important Notes
+Location fields:
 
-- Rainfall intensity and rainfall duration are different measurements.
-- A single observation does not establish how long rainfall has continued.
-- The rainfall tracker derives continuous duration from a sequence of observations.
-- An observation may report rain status without providing numerical rainfall intensity.
-- If a provider does not supply a field and it cannot be reliably derived, preserve it as unknown.
-- A weather station's measurement must not be presented as an exact measurement for every nearby road.
+| Field | Type | Meaning |
+|---|---|---|
+| `id` | string | Dashboard location ID (for example `KNP-01`) |
+| `city` | string | City scope, currently `kanpur` or `gurugram` |
+| `name` | string | Display label, which may identify an area rather than a precise road segment |
+| `geo` | string | Geocoding/search label |
+| `lat`, `lng` | number or null | Approximate or assigned coordinates; not proof of a surveyed road segment |
+| `heading` | number | UI/map presentation metadata |
+| `events` | array | Historical event/reference items for the location |
 
-## 4. Historical Waterlogging Event
+Dashboard event fields:
 
-### Purpose
+| Field | Type | Meaning |
+|---|---|---|
+| `date` | string | Event/report date as recorded |
+| `mm` | number or null | Reported rainfall amount; interpret with `scope`, never assume it is road-level |
+| `scope` | string | Explicit scale/period context for the amount |
+| `dur` | string | Original duration context or `UNKNOWN`; does not imply a numeric continuous-rain duration |
+| `sev` | string | Source-reported severity/depth context, not a standardized model probability |
+| `impact` | string | Text description of reported impact |
+| `src` | string | Source URL |
 
-Represents one documented past waterlogging incident.
+The current dashboard data shape is intentionally compact. It is not the canonical normalized research schema.
 
-### Proposed JSON Example
+## 3. Normalized historical record
 
+Machine-readable schema: `data/schemas/historical_waterlogging.schema.json`.
+
+The normalized format includes source identifiers (`record_id`, `event_id`, `source_record_id`), location fields (`road_id`, `road_name`, `location_name`, `location_precision`, `city`, coordinates), event-date fields, rainfall values plus scope/period/road-specific flags, severity/context, source name/URL, review/confidence state, threshold suitability, review flags, source sheet/row, and raw source fields.
+
+Important current rules:
+
+- `road_id` and `road_name` are null where the workbook does not identify an actual road segment.
+- Coordinates remain null in the normalized workbook export because the workbook does not support them; do not fill these from the dashboard's separately curated approximate coordinates without an explicit, reviewed join.
+- `rainfall_amount_mm` must be interpreted with `rainfall_scope` and `rainfall_scope_period`; the current research workbook values are not road-specific.
+- `rainfall_duration_minutes` is populated only for explicit wording that supports a numeric/qualified duration. An event time window is not automatically continuous rain.
+- `rainfall_intensity_mm_hr` remains null unless reported or derivable from sufficient co-located measurements and a documented method.
+- Ten priority claims were checked against their cited articles for the reported event/location claim; 203 other workbook records remain under review. This verification is not independent official corroboration and does not validate road thresholds.
+- All normalized workbook rows currently have unknown threshold status / insufficient evidence for a road-specific threshold.
+
+See [`data/README.md`](data/README.md), [`docs/historical-data-methodology.md`](docs/historical-data-methodology.md), and [`docs/source-verification-log.md`](docs/source-verification-log.md).
+
+## 4. Rainfall observation
+
+Machine-readable schema: `data/schemas/rainfall_observation.json`.
+
+```json
 {
-  "event_id": "EVENT-001",
-  "road_id": "DEL-001",
-  "road_name": "Example Road",
-  "event_date": "2025-07-15",
+  "location_id": "OBSERVATION_LOCATION_ID",
+  "timestamp": "2026-10-09T10:30:00Z",
+  "rainfall_intensity_mm_hr": 25.0,
+  "is_raining": true,
   "latitude": null,
   "longitude": null,
-  "rainfall_amount_mm": null,
-  "rainfall_duration_minutes": null,
-  "rainfall_intensity_mm_hr": null,
-  "severity": "HIGH",
-  "source_name": "Official report",
-  "source_url": "https://example.gov.in/report",
-  "evidence_status": "REQUIRES_REVIEW"
+  "accumulated_rainfall_mm": null,
+  "source": "manual"
 }
+```
 
-This is a structural example only. It is not a real event, and the URL must be replaced with a real source before any real record is added.
+This is a structural example, not a real observation. Required fields are non-empty `location_id`, timezone-aware ISO-8601 `timestamp`, and non-negative `rainfall_intensity_mm_hr`. `is_raining`, coordinates, accumulated rainfall, and source may be optional. A single observation cannot establish continuous rainfall duration; the tracker derives duration from a sequence.
 
-### Fields
+## 5. Road vulnerability configuration
 
-| Field | Type | Meaning |
-|---|---|---|
-| `event_id` | String | Unique identifier for the documented incident |
-| `road_id` | String or null | ID of the associated road, if identified reliably |
-| `road_name` | String or null | Road or location name recorded by the source |
-| `event_date` | String or null | Date of the documented event |
-| `latitude` / `longitude` | Number or null | Coordinates, if supported by evidence |
-| `rainfall_amount_mm` | Number or null | Documented rainfall accumulation over a known period |
-| `rainfall_duration_minutes` | Number or null | Documented rainfall duration, when available |
-| `rainfall_intensity_mm_hr` | Number or null | Documented or defensibly derived intensity |
-| `severity` | String or null | Documented severity or a separately explained project classification |
-| `source_name` | String | Name of the report, dataset or issuing body |
-| `source_url` | String | Link to the underlying evidence |
-| `evidence_status` | String | Review status for the record |
+`data/roads.json` currently contains two synthetic examples with numeric duration thresholds. These values are useful for software tests only and must not be interpreted as evidence-backed thresholds for actual roads. A production candidate should identify a stable road/segment, threshold basis, supporting historical record IDs, source provenance, review state, and threshold status such as `OBSERVED`, `DERIVED`, `ESTIMATED`, or `UNKNOWN`.
 
-### Evidence Status
+A road's ID is not a rainfall observation ID. M3 requires an explicit mapping:
 
-Use these values:
+```json
+{"REVIEWED_ROAD_ID": "REVIEWED_OBSERVATION_LOCATION_ID"}
+```
 
-- `UNVERIFIED` — Source or record has not been checked.
-- `REQUIRES_REVIEW` — Source exists but the record still needs validation.
-- `VERIFIED` — Record checked against its cited evidence.
-- `REJECTED` — Record is unsupported, inaccurate or unsuitable for use.
+No mapping should be inferred from equal IDs, names, or proximity.
 
-### Rules
+## 6. Risk assessment
 
-- Do not infer rainfall duration from daily rainfall totals.
-- Do not assume that two reports refer to different events without checking.
-- Do not assign a precise road ID if the source only identifies a broad area.
-- Record the original source for every event.
-- Keep missing values unknown.
+A risk assessment preserves M3's output fields: `status`, `road_id`, `road_name`, `location_id`, `current_duration_minutes`, `historical_threshold_minutes`, `risk_level`, `severity`, `is_raining`, `data_freshness`, `last_observation_timestamp`, `reason`, and `evaluated_at`.
 
-## 5. Road Vulnerability Record
+Risk enum values: `NORMAL`, `MONITOR`, `HIGH_RISK`, `UNKNOWN`.
 
-### Purpose
+Freshness/mapping values: `FRESH`, `STALE`, `NO_DATA`, `UNMAPPED`.
 
-Represents the historical waterlogging information associated with a road that the risk engine can use.
+`MONITOR` defaults to 70% of a configured threshold; `HIGH_RISK` starts at 100%. This ratio is a provisional deterministic heuristic. It is not a validated probability. A null threshold produces an unknown/threshold-unavailable assessment; no-data and stale values must not be interpreted as safe.
 
-This record is derived from historical evidence; it is not a raw historical incident.
+## 7. Units, timestamps, and null semantics
 
-### Proposed JSON Example
-
-{
-  "road_id": "DEL-001",
-  "road_name": "Example Road",
-  "threshold_minutes": 60,
-  "threshold_status": "ESTIMATED",
-  "historical_event_count": 4,
-  "severity": "HIGH",
-  "evidence_event_ids": [
-    "EVENT-001",
-    "EVENT-002"
-  ]
-}
-
-The threshold and event IDs here are illustrative. Do not use this record as real evidence.
-
-### Fields
-
-| Field | Type | Meaning |
-|---|---|---|
-| `road_id` | String | Stable identifier used by the application |
-| `road_name` | String | Road name or documented location name |
-| `threshold_minutes` | Number or null | Rainfall-duration indicator supported by the evidence |
-| `threshold_status` | String | How the threshold was established |
-| `historical_event_count` | Integer | Number of relevant events used or recorded |
-| `severity` | String or null | Historical severity classification |
-| `evidence_event_ids` | Array of strings | Historical events supporting the record |
-
-### Threshold Status
-
-Use these values:
-
-- `OBSERVED` — The source explicitly records the relevant duration/condition.
-- `DERIVED` — Calculated using a documented method from sufficient observations.
-- `ESTIMATED` — Approximate value based on limited evidence and clearly documented assumptions.
-- `UNKNOWN` — Evidence is insufficient to establish a threshold.
-
-Do not promote an estimated or unknown threshold to a verified observation.
-
-If the existing risk-engine implementation requires a numerical threshold, roads with `UNKNOWN` thresholds must be handled explicitly rather than given an invented number.
-
-## 6. Risk Assessment Result
-
-### Purpose
-
-Represents the result produced by the risk engine for an identified road.
-
-### Example
-
-{
-  "status": "success",
-  "road_id": "DEL-001",
-  "road_name": "Example Road",
-  "current_duration_minutes": 50.0,
-  "historical_threshold_minutes": 60.0,
-  "risk_level": "MONITOR",
-  "severity": "HIGH",
-  "is_raining": true,
-  "reason": "Rainfall duration is approaching the historical waterlogging indicator.",
-  "evaluated_at": "2026-10-09T10:30:00Z"
-}
-
-This example illustrates a possible output shape. The final keys must match the actual public interface of M3's risk service.
-
-### Fields
-
-| Field | Type | Meaning |
-|---|---|---|
-| `status` | String | Whether the evaluation succeeded |
-| `road_id` | String | Road being evaluated |
-| `road_name` | String | Display name, if available |
-| `current_duration_minutes` | Number or null | Current tracked continuous rainfall duration |
-| `historical_threshold_minutes` | Number or null | Historical indicator used in the evaluation |
-| `risk_level` | String | Calculated risk state |
-| `severity` | String or null | Historical baseline severity, not the current risk state |
-| `is_raining` | Boolean or null | Latest known rain state |
-| `reason` | String | Human-readable explanation of the risk result |
-| `evaluated_at` | String | Time of evaluation |
-
-### Risk Level Values
-
-Use the following agreed application values:
-
-- `NORMAL`
-- `MONITOR`
-- `HIGH_RISK`
-
-Do not use `HIGH` in one module and `HIGH_RISK` in another without an explicit conversion.
-
-The meaning of each risk state must match the implemented threshold comparator.
-
-## 7. Data Freshness
-
-The system must eventually distinguish the state of rainfall from the freshness of its data.
-
-Examples of possible data states:
-
-- `FRESH` — Observation is within the configured freshness limit.
-- `STALE` — Observation is older than the configured freshness limit.
-- `INVALID` — The observation is malformed or fails validation.
-
-These states describe data quality, not waterlogging risk.
-
-Missing observations must not automatically be interpreted as proof that rain has stopped.
-
-The exact fields and behaviour must match the implemented rainfall tracker.
-
-## 8. Units and Time
-
-- Rainfall intensity: mm/hr
-- Rainfall amount: mm
-- Rainfall duration: minutes
-- Latitude: decimal degrees
-- Longitude: decimal degrees
-- Machine timestamps: ISO 8601, preferably UTC
-
-Do not mix daily accumulation, hourly intensity and event duration.
-
-## 9. Data Quality and Provenance
-
-Every historical event should preserve its source.
-
-Every derived road threshold should have a documented method and links to the evidence supporting it.
-
-The risk engine must not describe a heuristic threshold result as a scientifically calibrated probability of flooding.
-
-## 10. Current Status
-
-- Rainfall observation structure: proposed; cross-check with M3's implemented model.
-- Historical waterlogging event structure: to be finalized with M2.
-- Road vulnerability structure: to be finalized once usable historical evidence is collected.
-- Risk assessment structure: use M3's actual facade output as the authoritative implementation contract.
-- Data freshness fields: finalize after M3's stale-data handling is implemented.
+- Rainfall amount/accumulation: millimetres (`mm`).
+- Rainfall intensity: millimetres per hour (`mm/hr`).
+- Continuous rainfall duration and thresholds: minutes.
+- Coordinates: decimal degrees.
+- Timestamps exchanged through the API: ISO-8601 with a timezone, preferably UTC (`Z`).
+- Use JSON `null` for a missing numeric/string value. Do not substitute zero unless zero was actually observed.
+- Keep the source's wording and qualifier when the normalized value is approximate or lower-bound.
+- Do not derive rainfall intensity from a city rainfall amount and a rough event window if the measurements are not established as co-located and temporally compatible.

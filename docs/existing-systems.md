@@ -2,182 +2,121 @@
 
 ## 1. Purpose
 
-This document records existing weather, drainage, flood-management and road-navigation systems relevant to our project.
+This document records weather, drainage, flood-management and navigation systems relevant to Garuda Route. It distinguishes existing services from the capabilities currently implemented in this project and from proposed work.
 
-The objective is to understand what already exists, identify useful data sources, and establish what our proposed system could add.
+The project should not claim that no existing solution exists, or that its contribution is unique, without evidence.
 
-We must not claim that no existing solution exists without evidence.
-
-## 2. Existing Systems
+## 2. Existing systems and potential data sources
 
 ### 2.1 India Meteorological Department (IMD)
 
-**Website:** https://mausam.imd.gov.in/
-
+**Website:** https://mausam.imd.gov.in/  
 **API documentation:** https://api.imd.gov.in/public/api_reference.html
 
-**What it provides:**
-- Current weather observations
-- District-wise and station-wise nowcasts
-- Rainfall information
-- District-level weather warnings
-- Weather forecasts
+IMD publishes official weather observations, rainfall information, district/station products and weather warnings. These may provide authoritative inputs for a waterlogging-risk workflow, subject to the spatial and temporal scope of the returned data.
 
-**Relevance to our project:**
+**Current Garuda Route status:** the local Node backend contains proxy endpoints for IMD district warnings and rainfall. The browser dashboard can request these endpoints, but the feature must not be described as live unless the team has obtained the required official IMD permission/access, configured the issued credentials on the backend, and verified successful responses. A public API reference is documentation, not proof that the project is authorized or currently connected.
 
-IMD may provide rainfall observations and warning information that can be used as inputs to our risk assessment system.
+Before live use, validate:
+- the access/permission process and applicable use conditions;
+- which product and fields are actually available to the project;
+- update frequency, timestamp semantics, and district/station coverage;
+- whether the measurement is district-, station- or road-specific;
+- error handling for missing, stale, rejected or unavailable feeds.
 
-**Limitations to investigate:**
-- Which API provides the most useful rainfall information for our selected area?
-- How frequently are relevant observations updated?
-- Does the returned data include a numerical rainfall intensity?
-- How closely does the observation represent an individual road?
-
-**Status:** Official source identified; specific endpoints and data quality still need testing.
+A district warning or station observation is contextual weather information; it is not automatically a measurement at a particular road.
 
 ### 2.2 Delhi Irrigation and Flood Control Department
 
-**Website:** https://ifc.delhi.gov.in/
-
+**Website:** https://ifc.delhi.gov.in/  
 **Services:** https://ifc.delhi.gov.in/doit-content/our-services
 
-**Available material includes:**
-- Delhi Drainage Map
-- Drainage Master Plan
-- Flood-control documents
+Available material includes drainage maps, drainage plans and flood-control documents. These may help characterize vulnerable areas and drainage context.
 
-**Relevance to our project:**
-
-These resources may help us understand drainage infrastructure, vulnerable areas and the physical context of documented waterlogging locations.
-
-**Limitations to investigate:**
-- Can we identify individual roads from the available documents?
-- Are waterlogging locations explicitly listed?
-- Are event dates, rainfall durations and severity recorded?
-- Can the information be downloaded and reused under the applicable terms?
-
-**Status:** Official documents identified; road-level coverage and usability require examination.
+**Status:** official documents are identified for research. Road-level coverage, downloadable formats, data quality and reuse conditions still require examination.
 
 ### 2.3 Delhi Disaster Management Authority (DDMA)
 
-**Website:** https://ddma.delhi.gov.in/
-
+**Website:** https://ddma.delhi.gov.in/  
 **Flood information:** https://ddma.delhi.gov.in/ddma/floods
 
-**What it provides:**
+DDMA information can help establish local flood/waterlogging context and disaster-management responsibilities.
 
-DDMA publishes information about flooding in Delhi, including river flooding, local flash flooding and waterlogging in low-lying areas.
-
-**Relevance to our project:**
-
-Its information can help establish the local problem, identify vulnerable-area characteristics and understand existing disaster-management responsibilities.
-
-**Limitations to investigate:**
-- Are downloadable historical incident records available?
-- Do records identify individual road segments?
-- Are rainfall observations linked to individual incidents?
-- Are real-time, traveller-facing road alerts available through a documented interface?
-
-**Status:** Official information identified; availability of structured data and relevant interfaces remains unverified.
+**Status:** official information is identified, but structured historical incident data and a suitable real-time, traveller-facing interface have not been verified for this project.
 
 ### 2.4 Delhi Public Works Department (PWD)
 
 **Website:** https://pwddelhi.gov.in/
 
-**Potentially relevant material:**
-- Waterlogging-related records and complaints
-- Flood-control and monsoon-preparedness documents
-- Road and drainage maintenance information
+Potentially relevant material includes road-related complaints, waterlogging records, monsoon-preparedness documents and maintenance information.
 
-**Relevance to our project:**
+**Status:** a candidate source. Downloadable records, location precision, links to rainfall observations and reuse conditions remain to be confirmed.
 
-PWD material is a potential source of historical waterlogging locations and road-related evidence.
+### 2.5 Mapping and navigation services
 
-**Limitations to investigate:**
-- Whether records are downloadable or accessible through an API
-- Whether location details are precise enough to map
-- Whether rainfall conditions are linked to reported events
-- Whether the source permits reuse
+Services such as Google Maps Platform provide map display, geocoding and candidate-route calculation, depending on enabled APIs, credentials and terms.
 
-**Status:** Research required; usable records have not yet been confirmed.
+**Current Garuda Route status:** the browser app integrates Google Maps when a usable browser key is provided; the app can fall back to OpenStreetMap when Google Maps cannot load. Google-based geocoding and route calculation depend on the relevant APIs and key restrictions being configured correctly.
 
-### 2.5 Existing Mapping and Navigation Services
+The route tab can compare candidate routes against the historical locations and the browser's current historical rainfall-clock heuristic. This is **not** proof of a fully validated road-segment flood-risk routing service. A map provider's route does not itself establish waterlogging risk unless the provider explicitly supplies a suitable hazard feed. Our own evidence and logic remain separate.
 
-Examples include Google Maps and other navigation providers.
+OpenStreetMap is a geographic/map fallback, not an official waterlogging incident feed. Its road geometry must not be used as evidence that a road has or has not flooded.
 
-**What they generally help with:**
-- Displaying maps
-- Searching for places
-- Calculating routes
-- Providing travel-time estimates, with capabilities depending on the provider and API
+## 3. Current Garuda Route contribution
 
-**Relevance to our project:**
+The current main-branch baseline includes:
+- a browser dashboard for historical waterlogging evidence in Kanpur and Gurugram;
+- a bundled interface dataset containing 10 event records across 7 locations, distinct from the larger 213-row research workbook;
+- an interactive rainfall/value clock that compares entered or selected values with historical amounts/durations when available;
+- alert, road/location, history and route panels;
+- map display with Google Maps integration and an OpenStreetMap fallback;
+- a route-comparison workflow whose risk interpretation is limited by the available historical data;
+- a separate FastAPI/M3 risk-engine module with explicit road-to-observation mapping, freshness states and an in-memory observation endpoint for testing.
 
-A navigation provider can supply candidate routes. Our system can then evaluate those routes against its own waterlogging-risk information.
+The historical dashboard's heuristic and M3's threshold comparator are separate mechanisms. The M3 service defaults to a 70% monitor ratio; the browser's historical comparison has its own configured ratio. Neither ratio is a scientifically calibrated flood probability.
 
-**Important limitation:**
+The Node IMD proxy is an integration path, not proof of a live feed. IMD data remains unavailable until official access is authorized and configured.
 
-A normal navigation route calculation does not automatically establish whether a road is waterlogged according to our historical rainfall thresholds. That assessment must come from our own risk data and logic, unless a provider explicitly supplies a suitable hazard feature.
+## 4. Conceptual workflow
 
-**Status:** Potential routing integration; provider, API access and terms to be confirmed.
-
-## 3. What Is Our Proposed Contribution?
-
-Our project proposes to connect four kinds of information:
-
-1. Current rainfall observations
-2. Historical road-waterlogging evidence
-3. Road/location information
-4. A transparent risk-assessment method
-
-The system would compare current rainfall conditions with the historical vulnerability information available for a road or location.
-
-It would then display a risk state, explain the evidence behind the warning, and help travellers consider an alternative route.
-
-## 4. Proposed Workflow
-
-Rainfall observations
+Authorized rainfall observations
         ↓
-Rainfall-duration tracking
+Observation validation and freshness checks
         ↓
-Historical road vulnerability
+Continuous-rainfall tracking
         ↓
-Risk assessment
+Evidence-backed road vulnerability and explicit mapping
         ↓
-Road warning
+Deterministic risk assessment
         ↓
-Route evaluation
+Risk state with data-quality context
         ↓
-Traveller recommendation
+Route evaluation and traveller-facing explanation
 
-## 5. Research Questions We Still Need to Answer
+The browser's historical evidence dashboard provides a separate exploratory workflow. Do not imply the full live pipeline is active simply because a step exists in the architecture or an API route is present.
 
-- Which live rainfall source works reliably for our pilot area?
-- Which historical records contain usable road-level information?
-- Do any records connect rainfall duration or intensity to waterlogging?
-- How many records are sufficient to support a defensible threshold?
-- How will a weather observation be associated with nearby roads?
-- How will we communicate missing data and uncertainty?
-- What existing road-alert or routing features could overlap with our proposal?
-- Which datasets and APIs permit our intended use?
+## 5. Remaining questions and work
 
-## 6. Important Limitations
+- Obtain official IMD access/permission and issued API credentials, then verify the allowed endpoint fields and update behaviour.
+- Find historical records that provide verified road-level geometry and co-located rainfall information.
+- Establish whether evidence is sufficient for any defensible road-specific rainfall-duration threshold.
+- Verify road-to-observation mappings before using M3 assessments for real traveller decisions.
+- Communicate unavailable, stale, unknown and unmapped data as such—not as safe conditions.
+- Evaluate Google Maps Platform and OpenStreetMap coverage, quotas, terms and attribution requirements.
+- Compare existing navigation, municipal alert and disaster-management features without overstating novelty.
+- Add validated coverage, freshness, route-result and risk-classification KPIs only when reliable measurements and evaluation methods are available.
 
-We must not assume that a road will flood merely because a rainfall-duration threshold has been reached.
+## 6. Limitations
 
-Waterlogging can also depend on drainage conditions, road elevation, runoff, blockages and other factors.
+Rainfall alone does not determine waterlogging. Drainage, elevation, blockages, runoff, land use and other factors may affect conditions.
 
-A historical threshold is an empirical indicator, not a guarantee of flooding.
+A historic report, event-area rainfall value, timer threshold or M3 status is not proof that a specific road is flooded. The historical dataset is mainly secondary reporting, and the current research assessment does not support validated road-specific thresholds or calibrated flood probabilities.
 
-We must not claim that our project replaces government flood-management infrastructure or that it is unique until the relevant comparisons have been completed.
+The FastAPI `/api/observations` endpoint is a testing/demo ingestion endpoint that updates process memory; it is not a live rainfall feed or persistent data store. Risk routes return service-unavailable until the M3 adapter is configured. Synthetic example thresholds must not be used as real traveller alerts.
 
-## 7. Current Conclusion
+## 7. Conclusion
 
-The initial research establishes that relevant weather, drainage and disaster-management systems already exist.
-
-The potential contribution of our project is to connect available rainfall observations with documented road-level waterlogging vulnerability, and to turn that relationship into an explainable warning and route-diversion workflow.
-
-This contribution remains a hypothesis to validate through further research and testing.
+Garuda Route's current value is an explainable prototype that organizes historical waterlogging evidence, presents it geographically, explores historical rainfall comparisons and demonstrates route comparison. The intended live, evidence-backed risk-routing workflow depends on stronger road-level data, verified mappings, authorized weather access, and further validation.
 
 ## 8. Sources
 
@@ -186,4 +125,3 @@ This contribution remains a hypothesis to validate through further research and 
 - Delhi I&FC Services: https://ifc.delhi.gov.in/doit-content/our-services
 - Delhi DDMA Flood Information: https://ddma.delhi.gov.in/ddma/floods
 - Delhi PWD: https://pwddelhi.gov.in/
-

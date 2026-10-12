@@ -1,54 +1,54 @@
-# Team Board
+# Team Board — Current Baseline
 
-## M1 — Integration / Architecture
+This board reflects the code and documentation in `main` at the pre-command-centre/pre-Google-Weather baseline. It is not a claim that every optional provider has been tested with live credentials.
 
-- [x] project_spec.md
-- [ ] ARCHITECTURE.md
-- [ ] API_CONTRACT.md
-- [ ] DATA_SCHEMA.md
-- [ ] TEAM_BOARD.md
-- [ ] Review M3 facade
-- [ ] Integrate M2 + M3
+## Current status at a glance
 
-### M2 — Historical Data
-- [x] Verify ten priority location records against the cited sources; document limitations
-- [x] Build historical_waterlogging.csv from source-linked workbook rows
-- [x] Build historical_waterlogging.json from the same normalized records
-- [x] Document source domains, provenance and limitations
-- [x] Identify threshold suitability: current records are insufficient for a road-specific threshold
-- [x] Add initial FastAPI health-check scaffold
+| Area | Status | Notes / next step |
+|---|---|---|
+| Browser historical dashboard | Implemented | Curated feed: 10 event records across 7 locations; source evidence remains limited |
+| Map display | Implemented with fallback | Google Maps first when configured; OSM fallback if Google Maps cannot load |
+| Google route comparison / geocoding | Conditional | Needs a valid, restricted browser key and necessary APIs; browser test required |
+| Node frontend server | Implemented | Serves page/config/data/helper and proxies optional services |
+| IMD district weather proxy | Implemented as adapter routes | End-to-end availability depends on authorized credentials and provider response |
+| M3 risk engine | Implemented as a Python module | Deterministic service/tracker/comparator; data is in-memory |
+| FastAPI risk API | Implemented, configurable | Returns 503 until a reviewed road file is configured |
+| Historical data normalization | Implemented | 213 workbook rows / 19 event groups; ten claims checked, 203 remain under review |
+| Evidence-backed road thresholds | Not ready | Current research does not support road-specific continuous-rain thresholds |
+| Verified road-to-observation mapping | Not ready as a real-data default | Must be explicitly researched/configured; root fixtures are synthetic |
+| Persistent telemetry / production deployment | Planned | Requires storage, operations, auth/monitoring, and deployment design |
+| Google Weather API integration | Not in this baseline | Previously experimental branch feature was rolled back |
+| Three-column command-centre UI redesign | Not in this baseline | Experimental redesign was rolled back; baseline layout remains |
 
-Current data status: 213 location rows across 19 source/date groups; 10 claims are source-verified and 203 remain under review. None supports road-specific threshold derivation.
+## Completed baseline capabilities
 
-- [ ] Identify official sources
-- [ ] Collect first 5–10 records
-- [ ] Build historical CSV
-- [ ] Build historical JSON
-- [ ] Document provenance
-- [ ] Determine threshold candidates
+- [x] Browser dashboard for curated historical events and locations.
+- [x] City filter for Kanpur, Gurugram, and both.
+- [x] User-controlled historical reference clock and risk-category visualization.
+- [x] Location detail/history/alert views and source links.
+- [x] Google Maps/OSM map selection logic and conditional route comparison.
+- [x] Node.js static serving and same-origin IMD/risk proxies.
+- [x] M3 `WaterloggingRiskService`, observation tracking, duplicate/conflict handling, freshness behaviour, null-threshold behaviour, and explicit road mappings.
+- [x] FastAPI adapter and route tests; it delegates risk calculation to M3.
+- [x] Data processing scripts, JSON Schema files, research methodology, source verification log, and data limitations.
 
-## M3 — Risk Engine
+## Priorities before live road-risk recommendations
 
-- [x] Initial risk engine
-- [x] Initial unit tests
-- [ ] Remove dead code
-- [ ] Implement facade
-- [ ] Improve stale-data handling
-- [ ] Improve duplicate handling
-- [ ] Add facade tests
-- [ ] Finalize API interface
+1. **Evidence:** finish reviewing the remaining workbook sources and preserve the difference between source verification and official corroboration.
+2. **Road identity:** identify stable road segments and verified geometry from an authoritative/reviewed source.
+3. **Threshold research:** do not derive road thresholds from city totals or event windows; document method and evidence for any threshold candidate.
+4. **Observation mapping:** explicitly map each eligible road to the observation source actually used; no ID or proximity inference.
+5. **Live ingestion:** implement a source adapter with timestamps, update cadence, timeouts, invalid-data handling, and outage behaviour. Do not treat manual `/api/observations` posts as a live feed.
+6. **Validation:** compare classifications to an independent reviewed event set and report measurable KPIs only after establishing methodology.
+7. **Operations:** add persistence, service health/monitoring, credential management, and deployment/runbook before production use.
 
-## M4 — Frontend
+## Test commands
 
-ON HOLD
+```bash
+node --test tests/routing-logic.test.js
+node --test tests/imd-proxy.test.js
+python -m unittest discover -s risk-engine/tests -v
+node --check backend/server.js
+```
 
-Do not start frontend integration until the API contract is stable.
-
-## Upcoming
-
-- [ ] Historical data → risk engine
-- [ ] Real IMD data
-- [ ] Backend
-- [ ] Google Maps
-- [ ] Alerts
-- [ ] AWS deployment
+For FastAPI tests, install `backend/requirements.txt` and run `python -m pytest -q` from `backend/`. See [`docs/TESTING.md`](docs/TESTING.md).

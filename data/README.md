@@ -10,7 +10,9 @@ The project aims to compare current rainfall observations with historical eviden
 
 The canonical source workbook is:
 
-`kanpur_gurugram_all_waterlogging_locations.xlsx`
+`raw/kanpur_gurugram_all_waterlogging_locations.xlsx`
+
+Paths in this document are relative to the `data/` directory unless stated otherwise.
 
 It was copied into `data/raw/` without editing its cell data. An earlier same-value workbook named `kanpur_gurugram_all_waterlogging_locations (2).xlsx` was already present there and was left unchanged. The two files have the same values in all four worksheets; they differ in binary metadata. The original in the earlier project output folder was not changed.
 
@@ -112,17 +114,49 @@ The `Citywide incidents`, `Rainfall context` and `Priority locations` sheets con
 
 When exporting the workbook into CSV or JSON, preserve the source URL and the associated evidence/limitation note. Do not export only road names and rainfall values while discarding provenance.
 
-## 8. How this data will be used by the application
+## 8. How the datasets relate to the current application
 
-The intended pipeline is:
+The repository contains multiple datasets with different purposes. They must not be treated as interchangeable.
 
-1. Historical records provide evidence about where waterlogging has been reported.
-2. A documented method may derive a road-vulnerability indicator when the evidence is sufficient.
-3. Live rainfall observations are normalized separately and tracked over time.
-4. The risk engine compares the current conditions with an evidence-supported indicator.
-5. The application returns an explainable risk result.
+### 8.1 Research workbook and processed exports — this directory
 
-If no defensible threshold is available for a road, the application should mark its risk assessment as unavailable or insufficiently supported rather than silently treating it as safe.
+- `raw/kanpur_gurugram_all_waterlogging_locations.xlsx` is the source workbook.
+- `processed/historical_waterlogging.csv` and `processed/historical_waterlogging.json` are normalized exports of the `Citywide incidents` sheet. They contain 213 source-named location records grouped into 19 event groups.
+- These exports preserve provenance, evidence status, measurement scope, unknown values and limitations. They are a research/evidence register, not a ready-to-use set of road-level thresholds.
+- The current browser dashboard does **not** load these 213 processed records directly as its default map dataset.
+
+### 8.2 Browser dashboard historical records
+
+The dashboard reads `frontend/data/road-waterlogging-records.json` through the Node server's `/records.js` endpoint. That is a separate, smaller application dataset with 10 historical event records across 7 locations, sourced from `road_waterlogging_historical_records.xlsx`.
+
+The browser uses these records for its historical location display and rainfall-clock comparisons. Its displayed historical comparison levels are a user-facing heuristic based on the available reported amount/duration fields; they are **not** the same as a validated, road-specific M3 risk assessment and must not be presented as a live flood prediction.
+
+When editing or refreshing the dashboard dataset, preserve the event source URLs, rainfall scope, unknown values and uncertainty notes. Do not silently copy all 213 research rows into the dashboard dataset or imply that city/district rainfall is road-level measurement.
+
+### 8.3 Synthetic road-threshold fixtures
+
+`data/roads.json` currently contains synthetic example road IDs and rainfall-duration thresholds. Such records may be used for local development and tests, but they are **not evidence-backed road records** and must not be configured for real traveller alerts. Keep clearly synthetic examples in `sample/` where possible and always label their purpose.
+
+The separate FastAPI backend and M3 risk engine require a configured roads file and explicit road-to-observation-location mappings before risk assessments are available. A mapping must never be inferred from a road name, road ID or proximity. Unknown, stale, unmapped or threshold-unavailable assessments must remain visibly unknown—not normal or safe.
+
+### 8.4 Intended data flow
+
+The longer-term intended workflow is:
+
+1. Historical research identifies where waterlogging has been reported and preserves the supporting sources.
+2. Sufficient, validated evidence is used to establish a documented road-vulnerability indicator, if possible.
+3. Authorized live rainfall observations are normalized and tracked over time.
+4. Each monitored road is explicitly associated with an appropriate observation source.
+5. The risk engine compares the tracked rainfall state with an evidence-supported threshold.
+6. The application displays the assessment with its freshness, explanation and limitations.
+
+If no defensible threshold or valid observation mapping exists for a road, the risk assessment must remain unavailable/unknown rather than silently treating the road as safe.
+
+### 8.5 IMD access requirement
+
+IMD data is an intended core input for the live workflow, not a feature that can be replaced by the historical workbook. Use of the IMD API requires official permission/access approval and the credentials issued for the project. Those credentials must be configured on the backend according to the issued authentication instructions; never place them in browser code or commit them to Git.
+
+Until authorization and credentials are obtained and configured, the live IMD feed is unavailable. The dashboard's historical rainfall records or rainfall-clock controls do not count as current IMD observations. See the root `README.md`, `backend/README.md` and `docs/CONFIGURATION.md` for application setup and configuration details.
 
 ## 9. Current status and next actions
 
@@ -136,6 +170,8 @@ If no defensible threshold is available for a road, the application should mark 
 - [x] Assess threshold suitability: no record currently supports a road-specific rainfall-duration threshold.
 
 **Current status:** source-linked research evidence register. Ten of 213 records are `VERIFIED` for the reported event/location claim; 203 remain `REQUIRES_REVIEW`. This is not a verified road-level predictive dataset.
+
+This research register, the dashboard's separate 10-event/7-location dataset, and the synthetic `data/roads.json` fixtures serve different purposes. See [Section 8](#8-how-the-datasets-relate-to-the-current-application) before using any of them in an application or demo.
 
 ## 10. Workbook inspection and processing
 

@@ -1,163 +1,113 @@
-# Road Waterlogging Risk Engine (M3 Module)
+# M3 — Road Waterlogging Risk Engine
 
-Part of the **Real-Time Road Waterlogging Alert and Route Diversion System**.
+The M3 module provides a deterministic, rule-based **historical waterlogging risk indicator**. It tracks continuous rainfall observations by observation location and compares tracked duration against a configured road threshold. It is not an ML model, hydraulic simulator, or calibrated flood probability.
 
-## 1. Purpose
-The Risk Engine monitors continuous rainfall duration against historical empirical road vulnerability thresholds to determine whether a road segment is approaching or reaching conditions under which it has historically experienced waterlogging.
+## Responsibilities
 
-> **Empirical Indicator Notice**:  
-> This system does *not* simulate physical flood hydraulics or claim that rain duration strictly causes flooding as a physical law. Instead, it computes a transparent **Historical Waterlogging Risk Level**: an empirical indicator that this specific road segment has historically experienced waterlogging under similar rainfall duration conditions.
+- Validate rainfall observations.
+- Track the duration of continuous rain at each observation location.
+- Handle time gaps, duplicate observations, conflicting timestamps, and out-of-order observations.
+- Evaluate data freshness at read time.
+- Compare duration to a configured threshold and produce a structured assessment.
+- Require an explicit road-ID to observation-location-ID mapping.
 
----
+## Module layout
 
-## 2. Architecture & Facade Pattern
-
-Backend (M2) and Frontend (M4) developers interact exclusively through the **`WaterloggingRiskService`** facade, without managing internal trackers or comparators:
-
-```text
-Backend Ingestion Worker (M2)          Frontend / Map Client (M4)
-          │                                      │
-          ▼ (Raw JSON / Dict)                    ▼ (GET /roads/risk)
-┌────────────────────────────────────────────────────────────────────────┐
-│                        WaterloggingRiskService                         │
-│  ├── ingest_observation(dict | model) -> receipt                      │
-│  ├── get_road_risk(road_id, as_of=None) -> assessment dict             │
-│  └── get_all_roads_risk(as_of=None) -> list[assessment dict]           │
-├────────────────────────────────────────────────────────────────────────┤
-│                         INTERNAL DELEGATION                            │
-│  [RainfallTracker]       [ThresholdComparator]        [RiskEngine]     │
-│   (State & Gap Policy)    (70% & 100% Heuristic)       (Road Records)  │
-└────────────────────────────────────────────────────────────────────────┘
-```
-
-### Module Structure
 ```text
 risk-engine/
-├── models/
-│   ├── rainfall.py              # RainfallObservation model & validation
-│   ├── road.py                  # RoadRecord model (historical threshold data)
-│   └── risk.py                  # RiskLevel enum & RiskAssessment output
-├── tracker/
-│   └── rainfall_tracker.py      # Stateful continuous rainfall tracker & gap policy
 ├── engine/
-│   ├── service.py               # WaterloggingRiskService public facade
-│   ├── threshold_comparator.py  # Ratio-based threshold comparison logic
-│   └── risk_engine.py           # Core orchestrator coordinating roads
-├── tests/
-│   ├── test_service.py          # 13 tests for public facade, staleness & conflicts
-│   ├── test_rainfall_tracker.py # 10 tests for duration tracking
-│   ├── test_threshold_comparator.py # 7 tests for threshold comparisons
-│   └── test_risk_engine.py      # 8 tests for risk engine & error handling
-├── simulation.py                # Standalone simulation demonstrating full lifecycle
-└── README.md                    # Technical documentation
+│   ├── service.py               # Public WaterloggingRiskService facade
+│   ├── threshold_comparator.py  # NORMAL / MONITOR / HIGH_RISK heuristic
+│   └── risk_engine.py           # Road registry and assessment orchestration
+├── models/
+│   ├── rainfall.py              # RainfallObservation validation
+│   ├── road.py                  # RoadRecord
+│   └── risk.py                  # RiskLevel and assessment output
+├── tracker/rainfall_tracker.py  # Per-location rainfall state and gap rules
+├── tests/                       # M3 unit tests
+├── simulation.py                # Synthetic lifecycle demonstration
+└── README.md
 ```
 
----
+## Public service interface
 
-## 3. Public Service Quickstart
+Located at `risk-engine/engine/service.py`:
 
-### Backend Import Note
-Because `risk-engine` has a hyphen, Python cannot import it directly via `import risk-engine`. Backend developers should add the folder to `sys.path` or configure `PYTHONPATH`:
+- `WaterloggingRiskService.from_roads_file(...)`
+- `register_road_mapping(road_id, location_id)`
+- `get_road_mapping(road_id)`
+- `ingest_observation(observation)`
+- `get_road_risk(road_id, as_of=None)`
+- `get_all_roads_risk(as_of=None)`
+
+Because `risk-engine` contains a hyphen, the FastAPI adapter adds that folder to `sys.path` and imports `engine.service`. Prefer the existing adapter instead of creating another risk calculator.
+
+## Initialise the service directly
+
+From repository root:
 
 ```python
 import sys
 from pathlib import Path
 
-# Add risk-engine to path:
-sys.path.insert(0, str(Path(__file__).resolve().parent / "risk-engine"))
-
+sys.path.insert(0, str(Path.cwd() / "risk-engine"))
 from engine.service import WaterloggingRiskService
-```
 
-```python
-# 1. Initialize service directly from roads dataset
 service = WaterloggingRiskService.from_roads_file(
-    roads_file_path="data/roads.json",
-    road_to_location={"DEL-001": "IMD_DEL_SENSOR_01", "DEL-002": "IMD_DEL_SENSOR_02"},
+    roads_file_path="path/to/reviewed-road-records.json",
+    road_to_location={"REVIEWED_ROAD_ID": "REVIEWED_LOCATION_ID"},
     stale_threshold_minutes=30.0,
     max_observation_gap_minutes=30.0,
-    monitor_ratio=0.70
+    monitor_ratio=0.70,
 )
 
-# 2. Ingest live observation (idempotent, safe on retries)
 receipt = service.ingest_observation({
-    "location_id": "IMD_DEL_SENSOR_01",
+    "location_id": "REVIEWED_LOCATION_ID",
     "timestamp": "2026-10-09T10:30:00Z",
     "rainfall_intensity_mm_hr": 25.0,
-    "is_raining": True
+    "is_raining": True,
+    "source": "manual",
 })
-
-# 3. Query single road risk
-risk = service.get_road_risk("DEL-001")
-
-# 4. Query all roads (for frontend map)
-all_risks = service.get_all_roads_risk()
+assessment = service.get_road_risk("REVIEWED_ROAD_ID")
 ```
 
----
+All identifiers and values above are examples. A single observation is not enough to establish a long continuous rain duration, and the mapping/threshold must be supported before using output for traveller decisions. Do not use the root `data/roads.json` fixture as evidence-backed road configuration.
 
-## 4. Key Engineering Policies
+## Risk levels and comparator
 
-### 4.1 Idempotent Duplicate Handling & Conflicts
-- **Exact Duplicate**: If an observation arrives with the same `location_id` and `timestamp` with matching values, the service returns `{"status": "duplicate_ignored"}`. It does **not** double-count duration and does **not** crash the ingestion worker.
-- **Conflicting Observation**: If the same timestamp arrives with conflicting telemetry values (e.g., intensity 40.0 vs 20.0), `ObservationConflictError` is raised to prevent silent corruption.
+The monitor threshold is:
 
-### 4.2 Data Freshness vs Rainfall State (Stale Data Policy)
-> **CRITICAL RULE**: Missing observations do *not* prove that rain has stopped.
+`monitor_threshold = historical_threshold_minutes × monitor_ratio`
 
-- The system separates:
-  1. `is_raining`: Observed rain status at the station.
-  2. `current_duration_minutes`: Accumulated unbroken continuous rainfall.
-  3. `last_observation_timestamp`: Time of the latest received observation.
-  4. `data_freshness`: `"FRESH"`, `"STALE"`, or `"NO_DATA"`.
-- If observations stop arriving for $> 30$ minutes, `data_freshness` is marked **`"STALE"`**.
-- **The continuous duration is NOT reset to zero** merely because an API or sensor went silent. The last known continuous duration is evaluated and reported with an explicit `[STALE DATA]` advisory in the `reason` field.
+The default ratio is `0.70` and must be in the open interval `(0, 1)`.
 
-### 4.3 Explicit Road-to-Location Mapping
-Road segments must be explicitly mapped to weather stations (`road_to_location: {"DEL-001": "IMD_DEL_01"}`).
-- The system does **not** assume `road_id == location_id`.
-- If a road has no mapping, both `get_road_risk()` and `get_all_roads_risk()` return the same `risk_level: "UNKNOWN"`, `data_freshness: "UNMAPPED"` assessment. No proximity or ID-based mapping is inferred.
-- If a road has no historical threshold, the threshold remains `None` in Python and serializes as JSON `null`; its risk remains `UNKNOWN`.
-
-### 4.4 Risk Levels & Threshold Comparison
-$$\text{monitor\_threshold} = \text{historical\_threshold} \times 0.70$$
-
-| Level | Condition | Explanation |
+| Level | Condition | Interpretation |
 |---|---|---|
-| `NORMAL` | $\text{duration} < \text{monitor\_threshold}$ | Continuous rainfall comfortably below historical thresholds. |
-| `MONITOR` | $\text{monitor\_threshold} \le \text{duration} < \text{historical\_threshold}$ | Early warning triggered. Continuous rain approaching historical waterlogging levels. |
-| `HIGH_RISK` | $\text{duration} \ge \text{historical\_threshold}$ | Road has reached or exceeded historical waterlogging rainfall duration. |
+| `NORMAL` | duration < monitor threshold | Below the configured early-warning comparison point |
+| `MONITOR` | monitor threshold ≤ duration < historical threshold | Approaching the configured empirical indicator |
+| `HIGH_RISK` | duration ≥ historical threshold | At or above the configured empirical indicator |
+| `UNKNOWN` | insufficient threshold/data/mapping | Not enough information to assign one of the numeric classes |
 
----
+These are deterministic categories relative to a configured indicator. They do not guarantee flooding, indicate a calibrated probability, or account for drainage, elevation, runoff, or all local factors.
 
-## 5. Output Format Example
+## Freshness and mapping invariants
 
-```json
-{
-  "status": "success",
-  "road_id": "DEL-001",
-  "road_name": "Road A",
-  "location_id": "IMD_DEL_SENSOR_01",
-  "current_duration_minutes": 50.0,
-  "historical_threshold_minutes": 60.0,
-  "risk_level": "MONITOR",
-  "severity": "HIGH",
-  "is_raining": true,
-  "data_freshness": "FRESH",
-  "last_observation_timestamp": "2026-10-09T10:50:00+00:00",
-  "reason": "Continuous rainfall duration (50.0m) has exceeded early-warning monitor threshold (42.0m, 70% of 60.0m). Approaching historical waterlogging conditions.",
-  "evaluated_at": "2026-10-09T10:50:00+00:00"
-}
-```
+- Exact duplicate observations are ignored idempotently when accepted by the facade; duration must not be double-counted.
+- Conflicting values for the same location/timestamp raise a conflict error.
+- Out-of-order observations are rejected.
+- A missing observation does **not** mean rain stopped.
+- A stale assessment preserves last-known duration with a `STALE` freshness flag/reason instead of inventing a dry state.
+- A road without an explicit mapping returns an `UNKNOWN` / `UNMAPPED` assessment with no location ID.
+- A missing historical threshold stays null and yields an unknown/threshold-unavailable result; it is not filled with a default number.
+- Observation state is held in memory in this implementation and is lost when the process restarts.
 
----
+## Run simulation and tests
 
-## 6. Running Tests & Simulation
+From the repository root:
 
 ```bash
-# Run all 38 unit tests:
-python -m unittest discover -s risk-engine/tests -v
-
-# Run the interactive simulation:
 python risk-engine/simulation.py
+python -m unittest discover -s risk-engine/tests -v
 ```
+
+The simulation creates synthetic observations to demonstrate state transitions. It is not a live weather integration. For the FastAPI interface and backend regression tests, see [`../backend/README.md`](../backend/README.md).

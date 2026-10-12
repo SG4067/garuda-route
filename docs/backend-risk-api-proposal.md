@@ -1,104 +1,40 @@
-# Backend risk API proposal — pending M1 agreement
+# Backend Risk API — Implementation Notes
 
-**Status:** proposal only. This is not the finalized API contract. M1 should
-confirm the collection response shape, error behavior, and unmapped-road
-semantics before backend risk routes are finalized.
+**Status:** Implemented in the checked-in baseline. This file describes the current integration rather than a pending proposal; the normative route/field contract is [`../API_CONTRACT.md`](../API_CONTRACT.md).
 
 ## Scope
 
-The backend will be an HTTP adapter around M3's WaterloggingRiskService. It
-will not calculate risk independently. M3 currently provides in-memory
-observation tracking; a live rainfall feed and persistent storage are outside
-this API proposal.
+The FastAPI application is a thin HTTP adapter around M3's `WaterloggingRiskService`. `backend/app/services/risk_service_adapter.py` configures/imports the existing facade and translates service exceptions. It does not implement a second risk calculator.
 
-M3 code was found on the configured remote's backend branch. The named
-feature/m3-risk-service branch was not advertised by the remote when checked
-on 2026-10-09. Confirm the intended integration ref before adding or vendoring
-the package into this branch.
+## Route summary
 
-## Proposed routes
+- `GET /api/health` — service health.
+- `GET /api/roads/risk?as_of=<ISO-8601>` — returns `{ "roads": [...], "count": n }`.
+- `GET /api/roads/{road_id}/risk?as_of=<ISO-8601>` — returns one assessment.
+- `POST /api/observations` — ingests demo/testing observations into memory only.
 
-### GET /api/roads/risk?as_of=<ISO-8601>
+Risk routes return HTTP 503 until a road file is configured. Unknown roads return 404, invalid timestamps/payloads 422, conflicting observations 409. Known unmapped roads remain `UNKNOWN` / `UNMAPPED`. Assessments preserve M3 field names and risk enum values.
 
-Call get_all_roads_risk(as_of=...) and return its array of road assessments
-unchanged. A plain array matches M3's current return type. M1 may instead
-request an object envelope such as { "roads": [...], "count": 0 }; that
-choice should be made once with the frontend consumer.
+## Node-to-FastAPI proxy
 
-### GET /api/roads/{road_id}/risk?as_of=<ISO-8601>
+The browser talks to the Node server:
 
-Call get_road_risk(road_id, as_of=...) and return its assessment object
-unchanged. Unknown road IDs should map to HTTP 404. A timestamp, when supplied,
-must be ISO-8601 and include a timezone.
+- `GET /api/risk/roads` -> FastAPI `GET /api/roads/risk`
+- `GET /api/risk/roads/{road_id}/risk` -> FastAPI `GET /api/roads/{road_id}/risk`
 
-### POST /api/observations
+Node's default upstream is `http://127.0.0.1:8000`, configurable through `GARUDAROUTE_RISK_API_BASE_URL`.
 
-Optional for the initial integration. If exposed, accept the M3 rainfall
-observation fields (location_id, timestamp,
-rainfall_intensity_mm_hr, optional is_raining, and optional provenance or
-coordinates) and return the service ingestion receipt unchanged. This endpoint
-would update process memory only; it would not imply a live data feed or
-persistence.
+## Configuration requirements
 
-## Per-road assessment shape
+Configure `GARUDAROUTE_RISK_ROADS_FILE` and `GARUDAROUTE_RISK_ROAD_TO_LOCATION_JSON` through FastAPI's environment or `backend/.env`. The root `data/roads.json` is a synthetic fixture and should not be used for real traveller safety decisions. Use only an evidence-reviewed road record and an explicit mapping.
 
-Keep M3 field names and enums rather than introducing a second risk model:
+Observation state is in memory and resets on restart. The API has no built-in live weather adapter or persistence layer. A successful manual observation POST is therefore not evidence of an operational live-rainfall integration.
 
-    {
-      "status": "success",
-      "road_id": "ROAD-001",
-      "road_name": "Example Road",
-      "location_id": "RAIN-GAUGE-01",
-      "current_duration_minutes": 45.0,
-      "historical_threshold_minutes": null,
-      "risk_level": "UNKNOWN",
-      "severity": "HIGH",
-      "is_raining": true,
-      "data_freshness": "FRESH",
-      "last_observation_timestamp": "2026-10-09T10:30:00+00:00",
-      "reason": "Historical waterlogging threshold is not yet determined.",
-      "evaluated_at": "2026-10-09T10:30:00+00:00"
-    }
+## Tests
 
-The values above are illustrative only. In particular, no threshold is being
-proposed for a real road.
+See `backend/tests/` for route and adapter tests. Run them after installing `backend/requirements.txt`:
 
-## Semantics the API must preserve
-
-| M3 condition | Required client interpretation |
-|---|---|
-| risk_level=UNKNOWN, data_freshness=NO_DATA | No observation is available. Never render as NORMAL or safe. |
-| risk_level=UNKNOWN, data_freshness=UNMAPPED | No explicit road-to-location mapping exists. Never render as NORMAL or safe. |
-| data_freshness=STALE | Assessment uses last known state and is stale; show the stale warning. |
-| threshold_unavailable / risk_level=UNKNOWN | No supported road threshold exists; do not compare against a guessed value. |
-| NORMAL, MONITOR, HIGH_RISK | Display only when the service returns that risk level. |
-
-M3 currently emits current_duration_minutes=0.0 and is_raining=false for
-NO_DATA; clients must treat status and data_freshness as authoritative,
-not infer that the road is dry from these fallback values. Prefer nulls for
-unobserved values if M3 chooses to adjust its output contract.
-
-## M3 integration issue to resolve
-
-RoadRecord.threshold_minutes permits null. In the current service on
-origin/backend, the no-observation and unmapped response paths call
-round(road.threshold_minutes, 1). The mapped-observation success path also
-rounds assessment.historical_threshold_minutes. These raise TypeError when
-the threshold is null, even though RiskEngine.evaluate_risk represents an
-unavailable threshold as UNKNOWN. M3 should preserve null thresholds in all
-service responses and add tests for these cases before backend integration.
-
-The single-road unmapped path currently raises RoadMappingNotFoundError,
-while the all-roads path returns an UNKNOWN/UNMAPPED assessment. Prefer
-consistent facade behavior before the API is finalized, or M1 must explicitly
-choose HTTP and body behavior for this discrepancy.
-
-## Decisions for M1
-
-1. Should the collection endpoint return M3's raw array or an object envelope?
-2. Should POST /api/observations be included now, given it is in-memory only?
-3. What HTTP status and error body should unknown roads, invalid as_of, and
-   missing road mappings use?
-4. Should single-road missing mappings return an UNKNOWN/UNMAPPED object,
-   matching collection results?
-5. Can M1 confirm the intended branch/ref for integrating M3's package?
+```bash
+cd backend
+python -m pytest -q
+```

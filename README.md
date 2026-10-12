@@ -9,8 +9,10 @@ Garuda Route is a prototype for exploring documented waterlogging locations in K
 ## Contents
 
 - [Current status](#current-status)
+- [Representation](#representation)
 - [What it does](#what-it-does)
 - [How the parts fit together](#how-the-parts-fit-together)
+- [YouTube demo](#youtube-demo)
 - [Quick start](#quick-start)
 - [Configuration](#configuration)
 - [Testing](#testing)
@@ -20,9 +22,31 @@ Garuda Route is a prototype for exploring documented waterlogging locations in K
 - [Project KPIs](#project-kpis)
 - [Contributing](#contributing)
 
+
+## Representation
+
+The screenshots below show the restored baseline dashboard. They are illustrative captures of the local prototype, not a guarantee that external services (Google Maps, IMD, or the separate risk API) are connected in every environment.
+
+![Garuda Route dashboard overview showing the map, location evidence, alerts panel, and rainfall reference clock](docs/assets/dashboard-overview.jpg)
+
+<details>
+<summary>View focused screenshots</summary>
+
+**Map and rainfall reference clock**
+
+![Map and rainfall reference clock](docs/assets/map-and-rain-clock.jpg)
+
+**Traveller alerts and IMD connection state**
+
+![Traveller alerts and IMD connection state](docs/assets/alerts-and-imd-status.jpg)
+
+</details>
+
+> **Demo video:** [YouTube demo](https://youtube.com/shorts/L_Qpsq48dAU?si=PIr9pBsefdJdHPjI)
+
 ## Current status
 
-The checked-in `main` baseline is a development prototype. Some features work locally without external credentials; others are optional integrations that need configuration or a separately running service.
+The checked-in `main` baseline is a development prototype. The historical dashboard can be explored locally; Google-based route comparison depends on its provider configuration, the separate M3 risk API requires its own configured process, and the intended live-weather workflow requires official IMD permission and issued credentials before API access can be activated.
 
 | Component | Current behaviour | Requirements / caveat |
 |---|---|---|
@@ -30,7 +54,7 @@ The checked-in `main` baseline is a development prototype. Some features work lo
 | Rainfall clock | Lets you explore reported rainfall amounts or duration and see how the dashboard’s reference classifications change | This is an interactive historical comparison/simulation, not a sensor feed |
 | Map | Tries Google Maps first and falls back to OpenStreetMap if Google Maps is unavailable | OpenStreetMap fallback provides a map, but Google-specific geocoding and route comparison are unavailable without a working Google Maps key/API setup |
 | Route comparison | Requests route options through Google Maps and evaluates them against locations flagged by the dashboard’s historical comparison | Not guaranteed to avoid actual flooding; Google Maps routing must be configured |
-| IMD district context | Can request district warnings and rainfall data through the Node backend | Requires a valid IMD credential and correct authentication settings; district values are not road-level measurements |
+| IMD district warnings/rainfall | Required integration for the intended live-weather workflow; same-origin Node proxy routes are implemented | Live access requires official IMD permission, issued credentials, and the authentication format approved for the project. District values are not road-level measurements |
 | Python M3 risk engine | Tracks continuous rainfall observations, checks freshness, and classifies configured roads against configured thresholds | Roads need explicit road-to-location mappings and evidence-supported thresholds for meaningful real-world use |
 | Risk API panel | Frontend can query a separate risk service through a Node proxy | The Node server does not start that separate service; the upstream service must be running and configured independently |
 
@@ -41,7 +65,7 @@ The checked-in `main` baseline is a development prototype. Some features work lo
 - **View locations on a map.** Select Kanpur, Gurugram, or both and inspect locations with available coordinates or approximate geocoding.
 - **Review alerts and road details.** Filter locations by the dashboard’s current reference classification and inspect their supporting notes.
 - **Compare route options.** When Google Maps routing is configured, compare candidate routes against the locations currently flagged by the historical comparison.
-- **Check optional district weather context.** Fetch IMD district warnings and rainfall when backend credentials are configured.
+- **Integrate official IMD district weather.** The project requires IMD data for its intended live-weather workflow. API access must first be formally authorized by IMD and the issued credentials configured on the backend; credentials are not bundled with the repository.
 - **Exercise the M3 risk engine.** Run the Python simulation and tests for observation ingestion, duration tracking, freshness, mapping, and threshold comparison.
 
 ## How the parts fit together
@@ -51,7 +75,7 @@ Historical source records ──> Browser dashboard ──> Map / alerts / histo
                                       │
                                       ├──> Optional Google Maps route comparison
                                       │
-                                      ├──> Node backend ──> Optional IMD district endpoints
+                                      ├──> Node backend ──> IMD district endpoints (official permission + credentials required)
                                       │
                                       └──> Node risk proxy ──> Separate risk API service
 
@@ -64,6 +88,18 @@ The historical dashboard and M3 risk engine have related goals, but they are **n
 - The M3 engine evaluates configured road records against an explicit historical threshold and tracks observations over time. It requires correct road-to-observation mappings. An unmapped road, stale observation, or missing threshold must not be represented as confirmed safe.
 - IMD district weather context is shown separately because district rainfall is not a measurement taken on every road.
 
+## YouTube demo
+
+**Demo walkthrough:** _YouTube link pending._ Replace this note with the published or unlisted YouTube URL once the recording is uploaded. Do not link a local video file or an unlisted video that viewers are not permitted to access.
+
+Example format:
+
+```text
+https://www.youtube.com/watch?v=YOUR_VIDEO_ID
+```
+
+When the URL is available, this section can be changed to a clickable link or a linked video thumbnail.
+
 ## Quick start
 
 ### Prerequisites
@@ -72,7 +108,7 @@ The historical dashboard and M3 risk engine have related goals, but they are **n
 - Python 3 for the M3 tests and simulation.
 - A modern browser.
 - Optional: a restricted Google Maps browser key for Google Maps and route comparison.
-- Optional: valid IMD API credentials for live district warning/rainfall context.
+- **IMD live-data access:** official IMD permission and issued API credentials are required before the live-weather integration can be activated. These are not included in the repository.
 
 ### 1. Clone the repository
 
@@ -96,7 +132,7 @@ source venv/bin/activate
 pip install -r backend/requirements.txt
 ```
 
-### 2. Start the web app
+### 3. Start the web app
 
 The Node server uses built-in Node modules; no root-level `npm install` is required for this server.
 
@@ -104,11 +140,11 @@ The Node server uses built-in Node modules; no root-level `npm install` is requi
 node backend/server.js
 ```
 
-Open <http://127.0.0.1:3000> in any web browser.
+Open <http://127.0.0.1:3000> in any browser.
 
 Without a Google Maps browser key, the app attempts to use OpenStreetMap. The historical dashboard can still be explored, but Google-specific route comparison and geocoding will not be available.
 
-### 3. Run the M3 simulation (optional)
+### 4. Run the M3 simulation (optional)
 
 From the repository root:
 
@@ -133,9 +169,11 @@ node backend/server.js
 
 The key is delivered to the browser through `/config.js`, so treat it as a **public browser key**, not a secret. Restrict it by allowed HTTP referrers and enable only the Google APIs required by this application. Never commit a real key to the repository.
 
-### IMD district weather (optional)
+### IMD API access (official permission required)
 
-Set the credential and authentication format issued for your IMD access. The server defaults to an `Authorization` header with the `Bearer` prefix:
+IMD data is a required integration for the intended live-weather workflow; it is not an optional product feature. **Before making API requests, obtain official IMD permission and the credentials/authentication instructions issued for this project.** This repository does not include credentials, and the dashboard cannot show live IMD data until authorized access has been granted and the backend is configured.
+
+Once access is granted, set the credential and authentication format issued by IMD. The server defaults to an `Authorization` header with the `Bearer` prefix only if that matches the issued instructions:
 
 ```bash
 export IMD_API_KEY="your-issued-credential"
@@ -152,7 +190,7 @@ The app uses these same-origin backend routes:
 - `GET /api/imd/warnings`
 - `GET /api/imd/rainfall`
 
-When IMD credentials are missing or rejected, the dashboard should report that the feed is unavailable; its historical records remain a separate source.
+When authorized credentials are missing, misconfigured, or rejected, the dashboard reports the feed as unavailable. Historical records remain available as a separate source; they must not be presented as live IMD observations. Never attempt to bypass the official permission process.
 
 ### Separate risk API (optional)
 
@@ -183,7 +221,7 @@ $env:IMD_API_KEY_MODE = "header"
 node backend/server.js
 ```
 
-Omit the optional variables for integrations you are not configuring.
+Configure the Google Maps variables only if using Google Maps. Configure the IMD variables only after official IMD permission and credentials have been obtained; they are a prerequisite for activating the required live-weather integration.
 
 ## Testing
 
@@ -265,7 +303,7 @@ The M3 risk engine uses a configurable historical threshold. Its default monitor
 - Weather reports and rainfall totals may be city-, district-, or station-level, not road-level.
 - The prototype does not model drainage capacity, surface runoff, elevation, river levels, or hydraulic flood propagation.
 - A route comparison can flag locations known to the dashboard; it cannot guarantee that a route is dry or safe.
-- Live IMD access requires valid credentials and may be unavailable. Provider outage or stale data must be displayed as unavailable, not normal.
+- Live IMD access is a required integration objective, but its use is gated by official IMD permission and issued credentials. Until access is approved and configured (or during outages), the feed must be displayed as unavailable, not normal.
 - The upstream M3 API must be configured and running separately for the API panel to return assessments.
 - Do not use the prototype as the sole basis for emergency response, traffic control, or travel-safety decisions.
 
