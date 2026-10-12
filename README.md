@@ -25,22 +25,32 @@ Garuda Route is a prototype for exploring documented waterlogging locations in K
 
 ## Representation
 
-The screenshots below show the restored baseline dashboard. They are illustrative captures of the local prototype, not a guarantee that external services (Google Maps, IMD, or the separate risk API) are connected in every environment.
+A visual overview of Garuda Route's dashboard, map-based route visualization, historical waterlogging evidence, and interactive controls.
 
-![Garuda Route dashboard overview showing the map, location evidence, alerts panel, and rainfall reference clock](docs/assets/dashboard-overview.jpg)
+<p align="center">
+  <img src="assets/representation-collage.jpg" alt="Garuda Route dashboard and feature overview" width="100%">
+</p>
 
 <details>
-<summary>View focused screenshots</summary>
+  <summary>View individual screenshots</summary>
 
-**Map and rainfall reference clock**
-
-![Map and rainfall reference clock](docs/assets/map-and-rain-clock.jpg)
-
-**Traveller alerts and IMD connection state**
-
-![Traveller alerts and IMD connection state](docs/assets/alerts-and-imd-status.jpg)
-
+  <p align="center">
+    <img src="assets/overview.png" alt="Garuda Route dashboard overview" width="100%">
+  </p>
+  <p align="center">
+    <img src="assets/routes.png" alt="Map and route visualization" width="100%">
+  </p>
+  <p align="center">
+    <img src="assets/history.png" alt="Historical evidence and event records" width="42%">
+    <img src="assets/map.png" alt="Route comparison" width="42%">
+  </p>
+  <p align="center">
+    <img src="assets/controls.png" alt="Rainfall controls and map layers" width="42%">
+  </p>
 </details>
+
+*Screenshots illustrate the interface. Live-weather availability and road-risk assessments depend on authorized data access, configuration, and supporting evidence.*
+
 
 > **Demo video:** [YouTube demo](https://youtube.com/shorts/L_Qpsq48dAU?si=PIr9pBsefdJdHPjI)
 
@@ -122,14 +132,16 @@ cd garuda-route
 #For Windows
 ```bash
 python -m venv .venv
-.venv\Scripts\activate.bat
-pip install -r backend\requirements.txt
+.\.venv\Scripts\activate.bat
+pip install -r .\backend\requirements.txt
+copy .\backend\.env.example .\backend\.env
 ```
 #For Linux & MacOS
 ```bash
 python -m venv venv
 source venv/bin/activate
 pip install -r backend/requirements.txt
+cp backend/.env.example backend/.env
 ```
 
 ### 3. Start the web app
