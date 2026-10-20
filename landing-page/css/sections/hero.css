@@ -1,0 +1,223 @@
+/* Hero: pinned scene with the emblem and its scroll-driven exit. */
+
+.hero {
+  height: 190vh;
+  padding: 0;
+}
+.hero-pin {
+  position: sticky;
+  top: 0;
+  height: 100svh;
+  display: grid;
+  align-items: center;
+  padding: 120px var(--pad) 80px;
+  perspective: 1300px;
+  overflow-x: clip;
+}
+.hero::before {
+  display: none;
+}
+.hero-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 30px;
+  align-items: center;
+  width: 100%;
+}
+@media (min-width: 960px) {
+  .hero-grid {
+    grid-template-columns: minmax(0, 1.12fr) minmax(0, 0.88fr);
+  }
+}
+.hero-copy {
+  will-change: transform, opacity;
+}
+.eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  font: 400 11.5px var(--label);
+  letter-spacing: 0.34em;
+  text-transform: uppercase;
+  color: var(--gold);
+}
+.eyebrow::before {
+  content: "";
+  width: 46px;
+  height: 1px;
+  background: var(--gold);
+}
+h1 {
+  font: 400 clamp(3rem, 6.7vw, 7.4rem)/0.96 var(--f-hero);
+  letter-spacing: -0.03em;
+  margin: 30px 0 0;
+}
+h1 .sub {
+  font-size: 0.48em;
+  line-height: 1.15;
+  letter-spacing: 0;
+  margin-top: 0.5em;
+}
+h1 .sub em {
+  font-family: var(--f-script);
+  font-style: normal;
+  font-weight: 400;
+}
+.hero p.lede {
+  margin-top: 34px;
+}
+.hero-cta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 26px 38px;
+  margin-top: 44px;
+}
+.emblem {
+  position: relative;
+  width: min(100%, 620px);
+  aspect-ratio: 1;
+  justify-self: center;
+  transform-style: preserve-3d;
+  transform: translate3d(var(--ex, 0px), 0, 0) rotateX(calc(var(--my, 0) * -7deg + var(--sp, 0) * 8deg))
+    rotateY(calc(var(--mx, 0) * 9deg)) scale(var(--es, 1));
+  will-change: transform;
+}
+.emblem svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+.l-rings {
+  transform: translateZ(-90px);
+  scale: calc(1 + var(--dis, 0) * 0.9);
+  opacity: calc(1 - var(--dis, 0));
+}
+.l-wing {
+  transform: translateZ(10px);
+  opacity: calc(1 - var(--dw, 0));
+}
+.l-drop {
+  transform: translateZ(80px);
+  translate: 0 calc(var(--dw, 0) * 90px);
+  opacity: calc(1 - var(--dw, 0));
+}
+.wl,
+.wr {
+  transform-box: view-box;
+}
+.wl {
+  transform-origin: 292px 290px;
+  transform: rotate(calc(var(--fl, 0) * 1deg));
+}
+.wr {
+  transform-origin: 308px 290px;
+  transform: rotate(calc(var(--fl, 0) * -1deg));
+}
+.spin {
+  transform-box: fill-box;
+  transform-origin: 50% 50%;
+  animation: spin 140s linear infinite;
+}
+.spin.rev {
+  animation-duration: 200s;
+  animation-direction: reverse;
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.rip {
+  transform-box: fill-box;
+  transform-origin: 50% 50%;
+  animation: rip 4.8s var(--out) infinite;
+  opacity: 0;
+}
+.rip:nth-child(2) {
+  animation-delay: 1.6s;
+}
+.rip:nth-child(3) {
+  animation-delay: 3.2s;
+}
+@keyframes rip {
+  0% {
+    transform: scale(0.25);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 0;
+  }
+}
+.cue {
+  position: absolute;
+  left: var(--pad);
+  bottom: 34px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  font: 400 10px var(--label);
+  letter-spacing: 0.34em;
+  text-transform: uppercase;
+  color: var(--dim);
+}
+.cue i {
+  display: block;
+  width: 1px;
+  height: 46px;
+  background: var(--line-2);
+  position: relative;
+  overflow: hidden;
+}
+.cue i::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 1px;
+  height: 46px;
+  background: var(--gold);
+  animation: cue 2.4s var(--out) infinite;
+}
+@keyframes cue {
+  0% {
+    transform: translateY(-100%);
+  }
+  60%,
+  100% {
+    transform: translateY(100%);
+  }
+}
+.hero-note {
+  position: absolute;
+  right: var(--pad);
+  bottom: 34px;
+  max-width: 260px;
+  text-align: right;
+  font: 400 10px/1.7 var(--label);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--dim);
+}
+@media (max-width: 700px) {
+  .hero-note {
+    display: none;
+  }
+  .emblem {
+    position: absolute;
+    right: -30%;
+    top: 12%;
+    width: 110%;
+    opacity: 0.28;
+    z-index: -1;
+  }
+}
+
+.line.sub {
+  padding-left: 0.14em;
+  margin-left: -0.14em;
+  padding-right: 0.1em;
+}

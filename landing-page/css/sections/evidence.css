@@ -1,0 +1,64 @@
+/* 01 Evidence: stats and pull quote. Display face: Italiana. */
+
+#evidence {
+  --disp: var(--f-ital);
+  --em: normal;
+  --h2-ls: 0.005em;
+  --h2-size: clamp(2.6rem, 5.8vw, 5.4rem);
+}
+
+.stats {
+  display: grid;
+  gap: 0;
+}
+.stat {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: baseline;
+  gap: clamp(18px, 3vw, 44px);
+  padding: 24px 0 22px;
+  border-top: 1px solid var(--line-2);
+  transform: perspective(900px) rotateX(calc((1 - var(--p, 1)) * -60deg))
+    translateY(calc((1 - var(--p, 1)) * 46px));
+  transform-origin: 50% 0;
+  opacity: calc(0.1 + var(--p, 1) * 0.9);
+}
+.stat:last-child {
+  border-bottom: 1px solid var(--line-2);
+}
+.stat b {
+  font: 400 clamp(5.2rem, 12vw, 10.5rem)/0.8 var(--f-hero);
+  letter-spacing: -0.04em;
+  color: var(--ivory);
+  min-width: 1.1ch;
+}
+.stat span {
+  font: 400 11.5px/1.7 var(--label);
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  color: var(--mute);
+}
+.stat span em {
+  display: block;
+  font: italic 400 1.6rem/1.2 var(--f-ed);
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--gold-hi);
+  margin-top: 6px;
+}
+.pull {
+  margin: clamp(60px, 9vw, 120px) 0 0;
+  padding: 0;
+  font: italic 400 clamp(1.9rem, 3.6vw, 3.4rem)/1.15 var(--f-ed);
+  color: var(--ivory);
+  letter-spacing: -0.01em;
+  max-width: 21ch;
+}
+.pull::before {
+  content: "";
+  display: block;
+  width: 54px;
+  height: 1px;
+  background: var(--gold);
+  margin-bottom: 28px;
+}

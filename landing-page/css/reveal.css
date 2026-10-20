@@ -1,0 +1,31 @@
+/* Scroll reveal: line-mask headings and fade-ups. Only active when JS adds .js to <html>. */
+
+.js .line {
+  display: block;
+  overflow: hidden;
+  padding-bottom: 0.12em;
+  margin-bottom: -0.12em;
+}
+.js .line > span {
+  display: block;
+  transform: translateY(115%) rotate(2.5deg);
+  transform-origin: 0 100%;
+  transition: transform 1.15s var(--out);
+  transition-delay: calc(var(--i, 0) * 0.1s);
+}
+.js .in .line > span,
+.js .line.in > span {
+  transform: none;
+}
+.js .reveal {
+  opacity: 0;
+  transform: translateY(30px);
+  transition:
+    opacity 1s var(--out),
+    transform 1.1s var(--out);
+  transition-delay: var(--d, 0s);
+}
+.js .reveal.in {
+  opacity: 1;
+  transform: none;
+}

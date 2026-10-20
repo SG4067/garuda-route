@@ -1,0 +1,44 @@
+/* Design tokens: colour, type families, spacing, easing. */
+
+:root {
+  /* Ink: page and surface blacks */
+  --ink: #07090a;
+  --ink-2: #0c1012;
+  --ink-3: #12181b;
+
+  /* Hairlines */
+  --line: rgba(214, 190, 140, 0.16);
+  --line-2: rgba(214, 190, 140, 0.34);
+
+  /* Metal + paper */
+  --gold: #c9a96b;
+  --gold-hi: #e8d3a0;
+  --ivory: #ede6d6;
+
+  /* Greys */
+  --mute: #9aa09a;
+  --dim: #69706b;
+
+  /* Signal colours, used sparingly (risk states only) */
+  --ox: #b24a40;
+  --amber: #d9a441;
+  --teal: #6f9c98;
+
+  /* Display faces: one per section, see css/sections/* */
+  --f-hero: "Bodoni Moda", "Bodoni 72", Didot, "Playfair Display", Georgia, serif;
+  --f-script: "Pinyon Script", "Snell Roundhand", "Apple Chancery", "Brush Script MT", cursive;
+  --f-ital: "Italiana", "Cormorant Garamond", Georgia, serif;
+  --f-ed: "Instrument Serif", "Iowan Old Style", Georgia, serif;
+  --f-cinzel: "Cinzel", "Trajan Pro", Georgia, serif;
+  --f-marc: "Marcellus", "Trajan Pro", Georgia, serif;
+  --f-bell: "Bellefair", "Palatino Linotype", Georgia, serif;
+  --f-tenor: "Tenor Sans", "Gill Sans", system-ui, sans-serif;
+
+  /* Text faces */
+  --body: "Hanken Grotesk", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+  --label: "Tenor Sans", "Hanken Grotesk", "Gill Sans", system-ui, sans-serif;
+
+  /* Layout + motion */
+  --pad: clamp(20px, 6vw, 96px);
+  --out: cubic-bezier(0.2, 0.8, 0.2, 1);
+}
