@@ -1,0 +1,44 @@
+/* Reduced motion: no animation, pinned scenes become static. */
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  .grain,
+  .spin,
+  .rip,
+  .cue i::after,
+  .wv,
+  .e,
+  .flag-pulse {
+    animation: none !important;
+  }
+  .js .line > span,
+  .js .reveal {
+    transform: none !important;
+    opacity: 1 !important;
+    transition: none !important;
+  }
+  .hero {
+    height: auto;
+  }
+  .hero-pin {
+    position: relative;
+    height: auto;
+    min-height: 100svh;
+  }
+  .scene {
+    height: auto;
+  }
+  .scene-sticky {
+    position: relative;
+    height: auto;
+    padding-top: 120px;
+    padding-bottom: 120px;
+  }
+  .stat,
+  .limit {
+    transform: none !important;
+    opacity: 1 !important;
+  }
+}

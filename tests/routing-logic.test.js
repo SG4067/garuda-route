@@ -8,20 +8,10 @@ import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { segmentToSegmentDist, computeRouteScore, selectBestRoute, findRouteRiskHits } from '../frontend/risk-utils.js';
 
-// ============================================================
-// Test fixtures: deterministic synthetic coordinates at equator
-// Planar approximation at lat=0:
-//   x = lng * 111320 * cos(0) = lng * 111320   (east-west)
-//   y = lat * 110540 = 0 * 110540 = 0           (north-south baseline)
-// PtLat(lat, lng) = point at specified lat/lng
-// Pt(lng) = point at equator (lat=0, lng=lng) for east-west tests
-// ============================================================
+// Synthetic coordinates at equator for planar approximation tests
 const Pt = (lng) => ({ lat: 0, lng });
 const PtLat = (lat, lng) => ({ lat, lng });
 
-// ============================================================
-// Test 1: Scoring formula (verified working)
-// ============================================================
 describe('computeRouteScore - scoring formula', () => {
   it('HIGH_RISK penalty dominates duration tie-breaker', () => {
     const routeA = { hits: [{ lvl: 'HIGH_RISK' }], mins: 0 };
@@ -43,9 +33,6 @@ describe('computeRouteScore - scoring formula', () => {
   });
 });
 
-// ============================================================
-// Test 2: selectBestRoute function
-// ============================================================
 describe('selectBestRoute - route selection', () => {
   it('selects route with lowest score as best', () => {
     const routes = [
@@ -62,9 +49,6 @@ describe('selectBestRoute - route selection', () => {
     assert(routes.length === 1, 'One route should not claim alternatives');
   });
 
-  // ============================================================
-  // Test: segmentToSegmentDist - intersection and distance cases
-  // ============================================================
   describe('segmentToSegmentDist - intersection and distance', () => {
     it('crossing segments have approximately zero distance', () => {
       // Segment 1: from (0,0) to (10,0) at equator
@@ -107,11 +91,6 @@ describe('selectBestRoute - route selection', () => {
     });
   });
 
-  // ============================================================
-  // Test 5: findRouteRiskHits - route-road interaction
-  // ============================================================
-
-
   it('same risky road counted only once per route via scoring formula', () => {
     // Two HIGH_RISK hits score 200; deduplication is
     // handled upstream in findRouteRiskHits / the engine.
@@ -122,9 +101,6 @@ describe('selectBestRoute - route selection', () => {
   });
 });
 
-// ============================================================
-// Test 3: segmentToSegmentDist - core non-degenerate cases
-// ============================================================
 describe('segmentToSegmentDist - core cases', () => {
   it('point-to-segment distance works (edge case)', () => {
     // Distance from point at equator lng=0 to segment from lng=10 to lng=20
@@ -139,12 +115,6 @@ describe('segmentToSegmentDist - core cases', () => {
   });
 });
 
-// ============================================================
-// Test 4: segmentToSegmentDist - latitude-based separation
-//    Changing lat moves the y coordinate (1 deg lat ≈ 110540m at equator)
-//    Changing lng moves the x coordinate (1 deg lng ≈ 111320m at equator)
-//    This demonstrates the geographic distance scaling principle.
-// ============================================================
 describe('segmentToSegmentDist - latitude scaling', () => {
   it('parallel segments separated by latitude are detected correctly', () => {
     // Segment 1 at equator from lng=0 to lng=10
@@ -160,9 +130,6 @@ describe('segmentToSegmentDist - latitude scaling', () => {
   });
 });
 
-// ============================================================
-// Test 5: findRouteRiskHits - route-road interaction
-// ============================================================
 describe('findRouteRiskHits - route-road interaction', () => {
   it('route far from all roads has no hits', () => {
     const path = [Pt(0), Pt(10), Pt(20)];

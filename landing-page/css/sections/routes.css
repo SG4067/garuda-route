@@ -1,0 +1,271 @@
+/* 03 Route comparison: pinned 3D map scene. Display face: Marcellus. */
+
+#routes {
+  --disp: var(--f-marc);
+  --em: normal;
+  --h2-ls: 0;
+}
+
+.scene {
+  height: 380vh;
+  padding: 0;
+}
+.scene::before {
+  display: none;
+}
+.scene-sticky {
+  position: sticky;
+  top: 0;
+  height: 100svh;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: center;
+  gap: 20px;
+  padding: 90px var(--pad) 40px;
+  overflow: hidden;
+}
+@media (min-width: 960px) {
+  .scene-sticky {
+    grid-template-columns: minmax(0, 0.78fr) minmax(0, 1.22fr);
+    gap: 40px;
+  }
+}
+@media (min-width: 1180px) {
+  .scene-sticky {
+    padding-right: calc(var(--pad) + 44px);
+  }
+}
+.scene h2 {
+  font-size: clamp(2.2rem, 4.1vw, 4.1rem);
+  max-width: 13ch;
+}
+.steps {
+  list-style: none;
+  margin: 34px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 0;
+}
+.step {
+  display: grid;
+  grid-template-columns: 44px 1fr;
+  padding: 16px 0;
+  border-top: 1px solid var(--line);
+  opacity: 0.32;
+  transition: opacity 0.7s var(--out);
+}
+.step:last-child {
+  border-bottom: 1px solid var(--line);
+}
+.step.on {
+  opacity: 1;
+}
+.step b {
+  font: italic 400 1.6rem/1.3 var(--f-ed);
+  color: var(--gold);
+}
+.step span {
+  font-size: 15px;
+  color: #c4c8c0;
+  line-height: 1.55;
+}
+.step strong {
+  display: block;
+  font: 500 11px var(--label);
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  color: var(--ivory);
+  margin-bottom: 4px;
+}
+.stage {
+  perspective: 1500px;
+  perspective-origin: 50% 35%;
+  display: grid;
+  place-items: center;
+  height: min(70vh, 700px);
+}
+.plane {
+  width: min(100%, 880px);
+  aspect-ratio: 5/4;
+  transform-style: preserve-3d;
+  transform: rotateX(var(--rx, 62deg)) rotateZ(var(--rz, -22deg)) scale(var(--sc, 0.86));
+  border: 1px solid var(--line-2);
+  background: #0a0f11;
+  box-shadow:
+    0 60px 120px -30px rgba(0, 0, 0, 0.9),
+    0 0 0 1px rgba(0, 0, 0, 0.6);
+  will-change: transform;
+  position: relative;
+}
+.plane svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.plane::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(180deg, rgba(7, 9, 10, 0), rgba(7, 9, 10, 0) 60%, rgba(7, 9, 10, 0.35));
+}
+.m-street {
+  fill: none;
+  stroke: #18262a;
+  stroke-width: 0.8;
+}
+.m-street.mj {
+  stroke: #213338;
+  stroke-width: 1.2;
+}
+.m-water {
+  fill: none;
+  stroke: #05090b;
+  stroke-width: 66;
+}
+.m-bank {
+  fill: none;
+  stroke: #1c3436;
+  stroke-width: 70;
+}
+.m-art-c {
+  fill: none;
+  stroke: #060a0b;
+  stroke-width: 7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.m-art {
+  fill: none;
+  stroke: #2b3a3c;
+  stroke-width: 3.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.r-fast {
+  fill: none;
+  stroke: var(--ivory);
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 1;
+  stroke-dashoffset: calc(1 - var(--rf, 0));
+}
+.r-fast-c {
+  fill: none;
+  stroke: #060a0b;
+  stroke-width: 8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 1;
+  stroke-dashoffset: calc(1 - var(--rf, 0));
+}
+.r-alt {
+  fill: none;
+  stroke: var(--gold-hi);
+  stroke-width: 4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 1;
+  stroke-dashoffset: calc(1 - var(--ra, 0));
+}
+.r-alt-c {
+  fill: none;
+  stroke: #060a0b;
+  stroke-width: 9;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 1;
+  stroke-dashoffset: calc(1 - var(--ra, 0));
+}
+.r-alt-g {
+  fill: none;
+  stroke: var(--gold);
+  stroke-width: 13;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 1;
+  stroke-dashoffset: calc(1 - var(--ra, 0));
+  filter: url(#m-blur);
+  opacity: 0.55;
+}
+.zone {
+  fill: url(#m-hatch);
+  stroke: var(--ox);
+  stroke-width: 1;
+  stroke-dasharray: 4 3;
+  opacity: var(--rz2, 0);
+  transition: opacity 0.2s;
+}
+.flag {
+  opacity: var(--rz2, 0);
+}
+.flag-ring {
+  fill: rgba(178, 74, 64, 0.18);
+  stroke: var(--ox);
+  stroke-width: 1.4;
+}
+.flag-pulse {
+  fill: none;
+  stroke: var(--ox);
+  stroke-width: 1;
+  transform-box: fill-box;
+  transform-origin: 50% 50%;
+  animation: fp 2.6s var(--out) infinite;
+}
+@keyframes fp {
+  0% {
+    transform: scale(0.6);
+    opacity: 0.9;
+  }
+  100% {
+    transform: scale(2.4);
+    opacity: 0;
+  }
+}
+.tag rect {
+  fill: #0b1012;
+  stroke-width: 1;
+}
+.tag text {
+  font: 500 11px var(--label);
+  letter-spacing: 0.2em;
+  fill: var(--ivory);
+}
+.tag .s {
+  font: 400 11px var(--label);
+  letter-spacing: 0;
+  fill: var(--mute);
+}
+.tag.o rect {
+  stroke: var(--ox);
+}
+.tag.g rect {
+  stroke: var(--gold);
+}
+.tag.i rect {
+  stroke: var(--line-2);
+}
+.tag {
+  transition: opacity 0.6s var(--out);
+}
+.scene[data-step="1"] .t-flag,
+.scene[data-step="1"] .t-alt {
+  opacity: 0;
+}
+.scene[data-step="2"] .t-alt {
+  opacity: 0;
+}
+.scene .t-fast {
+  opacity: var(--tf, 0);
+}
+.map-cap {
+  position: absolute;
+  left: 20px;
+  bottom: 18px;
+  font: 400 10px var(--label);
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--dim);
+  z-index: 2;
+}

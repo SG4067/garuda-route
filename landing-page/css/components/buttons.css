@@ -1,0 +1,103 @@
+/* Buttons and text links. */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+  padding: 15px 28px;
+  border: 1px solid var(--gold);
+  color: var(--gold-hi);
+  background: transparent;
+  text-decoration: none;
+  font: 500 11.5px var(--label);
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  transition: color 0.45s var(--out);
+}
+.btn::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: var(--gold);
+  transform: translateY(101%);
+  transition: transform 0.5s var(--out);
+}
+.btn:hover {
+  color: #0a0a09;
+}
+.btn:hover::before {
+  transform: none;
+}
+.btn svg {
+  width: 16px;
+  height: 16px;
+  flex: none;
+}
+.btn--fill {
+  background: var(--gold);
+  color: #0a0a09;
+}
+.btn--fill::before {
+  background: var(--ivory);
+}
+.btn--sm {
+  padding: 11px 20px;
+  font-size: 10.5px;
+}
+.link {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  text-decoration: none;
+  font: 500 11.5px var(--label);
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--ivory);
+  position: relative;
+  padding: 8px 0;
+}
+.link::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 1px;
+  background: var(--line-2);
+  transition: background 0.3s;
+}
+.link::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 1px;
+  background: var(--gold);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.6s var(--out);
+  z-index: 1;
+}
+.link:hover::before {
+  transform: scaleX(1);
+}
+.link svg {
+  width: 16px;
+  height: 16px;
+  transition: transform 0.4s var(--out);
+}
+.link:hover svg {
+  transform: translateX(5px);
+}
+.icon {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}

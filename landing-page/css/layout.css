@@ -1,0 +1,82 @@
+/* Shared section layout and typography. */
+
+section {
+  position: relative;
+  padding: clamp(110px, 17vh, 210px) var(--pad);
+}
+section + section::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: var(--pad);
+  right: var(--pad);
+  height: 1px;
+  background: var(--line);
+}
+.kicker {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  font: 400 11px var(--label);
+  letter-spacing: 0.36em;
+  text-transform: uppercase;
+  color: var(--gold);
+}
+.kicker::before {
+  content: "";
+  width: 44px;
+  height: 1px;
+  background: var(--gold);
+}
+.kicker b {
+  font-weight: 400;
+  color: var(--dim);
+}
+h2 {
+  font: 400 var(--h2-size, clamp(2.5rem, 5.6vw, 5.2rem))/var(--h2-lh, 1) var(--disp, var(--f-hero));
+  letter-spacing: var(--h2-ls, -0.02em);
+  margin: 26px 0 0;
+  max-width: 15ch;
+}
+h2 em,
+h1 em {
+  font-style: var(--em, italic);
+  font-weight: 400;
+  color: var(--gold-hi);
+}
+.lede {
+  color: #bbc0b8;
+  max-width: 46ch;
+  font-size: clamp(16px, 1.25vw, 19px);
+  margin: 30px 0 0;
+}
+.fine {
+  color: var(--dim);
+  font-size: 13.5px;
+  line-height: 1.6;
+  max-width: 56ch;
+  margin: 26px 0 0;
+}
+.split {
+  display: grid;
+  gap: clamp(40px, 6vw, 100px);
+  grid-template-columns: minmax(0, 1fr);
+}
+@media (min-width: 960px) {
+  .split {
+    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+    align-items: start;
+  }
+  .split.flip {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+}
+.sticky-col {
+  position: relative;
+}
+@media (min-width: 960px) {
+  .sticky-col {
+    position: sticky;
+    top: 18vh;
+  }
+}

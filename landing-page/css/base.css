@@ -1,0 +1,60 @@
+/* Reset, document defaults, accessibility helpers. */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+html {
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+}
+body {
+  margin: 0;
+  background: var(--ink);
+  color: var(--ivory);
+  font: 300 17px/1.65 var(--body);
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+a {
+  color: inherit;
+}
+img {
+  max-width: 100%;
+}
+::selection {
+  background: var(--gold);
+  color: #0a0a09;
+}
+:focus-visible {
+  outline: 1px solid var(--gold-hi);
+  outline-offset: 4px;
+}
+.sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+.skip {
+  position: fixed;
+  left: 16px;
+  top: -60px;
+  z-index: 200;
+  background: var(--gold);
+  color: #0a0a09;
+  padding: 10px 16px;
+  font: 500 12px var(--label);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  text-decoration: none;
+  transition: top 0.3s;
+}
+.skip:focus {
+  top: 16px;
+}
+.sprite { position: absolute; width: 0; height: 0; overflow: hidden; }

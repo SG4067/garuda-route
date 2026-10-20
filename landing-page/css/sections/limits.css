@@ -1,0 +1,47 @@
+/* 06 Candour: limits list. Display face: Instrument Serif. */
+
+#limits {
+  --disp: var(--f-ed);
+  --h2-size: clamp(2.8rem, 6vw, 5.6rem);
+  --h2-ls: -0.02em;
+}
+
+.limits {
+  list-style: none;
+  margin: clamp(50px, 7vw, 90px) 0 0;
+  padding: 0;
+}
+.limit {
+  display: grid;
+  grid-template-columns: clamp(54px, 8vw, 120px) minmax(0, 1fr);
+  gap: 16px;
+  padding: clamp(26px, 3.4vw, 44px) 0;
+  border-top: 1px solid var(--line-2);
+  transform: perspective(1000px) rotateX(calc((1 - var(--p, 1)) * -34deg))
+    translateY(calc((1 - var(--p, 1)) * 34px));
+  transform-origin: 50% 0;
+  opacity: calc(0.05 + var(--p, 1) * 0.95);
+}
+.limit:last-child {
+  border-bottom: 1px solid var(--line-2);
+}
+.limit > b {
+  font: italic 400 clamp(1.8rem, 3vw, 2.8rem)/1 var(--f-ed);
+  color: var(--gold);
+}
+.limit h3 {
+  margin: 0;
+  font: 400 clamp(1.9rem, 3.5vw, 3.3rem)/1.08 var(--f-ed);
+  letter-spacing: -0.01em;
+  max-width: 24ch;
+}
+.limit p {
+  margin: 14px 0 0;
+  color: var(--mute);
+  max-width: 60ch;
+  font-size: 15.5px;
+}
+
+#limits h2 {
+  max-width: 18ch;
+}

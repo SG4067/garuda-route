@@ -1,0 +1,193 @@
+/* 02 Rainfall clock: dial, legend, slider. Display face: Cinzel. */
+
+#clock {
+  --disp: var(--f-cinzel);
+  --em: normal;
+  --h2-ls: 0.012em;
+  --h2-size: clamp(2rem, 3.9vw, 3.6rem);
+  --h2-lh: 1.14;
+}
+
+.dial-wrap {
+  display: grid;
+  justify-items: center;
+  gap: 22px;
+}
+.dial {
+  position: relative;
+  width: min(100%, 500px);
+  aspect-ratio: 1;
+  margin-bottom: -56px;
+}
+.dial svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  touch-action: none;
+}
+.dial-read {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  text-align: center;
+  pointer-events: none;
+  text-shadow: 0 1px 18px rgba(0, 0, 0, 0.55);
+}
+.dial-read b {
+  font: 400 clamp(4.4rem, 9vw, 7.4rem)/0.9 var(--f-ital);
+  letter-spacing: -0.02em;
+}
+.dial-read b small {
+  font-size: 0.42em;
+  letter-spacing: 0;
+  margin-left: 2px;
+  color: var(--gold-hi);
+}
+.dial-read > span {
+  margin-top: 12px;
+  font: 500 11px var(--label);
+  letter-spacing: 0.34em;
+  text-transform: uppercase;
+  color: var(--mute);
+  transition: color 0.5s;
+}
+.dial-read em {
+  display: block;
+  margin-top: 6px;
+  font: italic 400 1.15rem var(--f-ed);
+  color: var(--dim);
+}
+[data-state="monitor"] .dial-read > span {
+  color: var(--amber);
+}
+[data-state="high"] .dial-read > span {
+  color: #e07b6f;
+}
+.wave1 {
+  fill: rgba(111, 156, 152, 0.5);
+  transition: fill 0.7s;
+}
+.wave2 {
+  fill: rgba(111, 156, 152, 0.28);
+  transition: fill 0.7s;
+}
+[data-state="monitor"] .wave1 {
+  fill: rgba(217, 164, 65, 0.5);
+}
+[data-state="monitor"] .wave2 {
+  fill: rgba(217, 164, 65, 0.26);
+}
+[data-state="high"] .wave1 {
+  fill: rgba(178, 74, 64, 0.62);
+}
+[data-state="high"] .wave2 {
+  fill: rgba(178, 74, 64, 0.32);
+}
+.wv {
+  animation: wv 7s linear infinite;
+}
+.wv.b {
+  animation-duration: 11s;
+  animation-direction: reverse;
+}
+@keyframes wv {
+  to {
+    transform: translateX(-120px);
+  }
+}
+.range {
+  -webkit-appearance: none;
+  appearance: none;
+  width: min(100%, 460px);
+  height: 28px;
+  background: transparent;
+  margin: 0;
+  --v: 48%;
+}
+.range::-webkit-slider-runnable-track {
+  height: 1px;
+  background: linear-gradient(90deg, var(--gold) var(--v), var(--line-2) var(--v));
+}
+.range::-moz-range-track {
+  height: 1px;
+  background: linear-gradient(90deg, var(--gold) var(--v), var(--line-2) var(--v));
+}
+.range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 15px;
+  height: 15px;
+  margin-top: -7px;
+  border-radius: 50%;
+  background: var(--ink);
+  border: 1px solid var(--gold-hi);
+  box-shadow: 0 0 0 4px rgba(201, 169, 107, 0.14);
+}
+.range::-moz-range-thumb {
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: var(--ink);
+  border: 1px solid var(--gold-hi);
+}
+.presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: center;
+}
+.legend {
+  list-style: none;
+  margin: 44px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 0;
+}
+.legend li {
+  display: grid;
+  grid-template-columns: 14px 1fr;
+  gap: 18px;
+  padding: 18px 0;
+  border-top: 1px solid var(--line);
+  color: var(--dim);
+  transition: color 0.5s;
+}
+.legend li:last-child {
+  border-bottom: 1px solid var(--line);
+}
+.legend i {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  margin-top: 9px;
+  border: 1px solid currentColor;
+  transition: background 0.5s;
+}
+.legend b {
+  display: block;
+  font: 500 11.5px var(--label);
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+}
+.legend span {
+  font-size: 14.5px;
+  color: var(--mute);
+}
+[data-state="below"] .legend [data-s="below"],
+[data-state="monitor"] .legend [data-s="monitor"],
+[data-state="high"] .legend [data-s="high"] {
+  color: var(--ivory);
+}
+[data-state="below"] .legend [data-s="below"] i {
+  background: var(--teal);
+  color: var(--teal);
+}
+[data-state="monitor"] .legend [data-s="monitor"] i {
+  background: var(--amber);
+  color: var(--amber);
+}
+[data-state="high"] .legend [data-s="high"] i {
+  background: var(--ox);
+  color: var(--ox);
+}

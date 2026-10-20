@@ -1,0 +1,93 @@
+/* 05 System diagram. Display face: Tenor Sans. */
+
+#system {
+  --disp: var(--f-tenor);
+  --em: normal;
+  --h2-ls: -0.012em;
+  --h2-size: clamp(2.4rem, 5vw, 4.6rem);
+}
+
+.diagram {
+  margin-top: clamp(50px, 7vw, 90px);
+  overflow-x: auto;
+  padding-bottom: 10px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--line-2) transparent;
+}
+.diagram svg {
+  display: block;
+  min-width: 900px;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+.n-box {
+  fill: rgba(12, 16, 18, 0.9);
+  stroke: var(--line-2);
+  stroke-width: 1;
+}
+.n-box.hot {
+  stroke: var(--gold);
+}
+.n-t {
+  font: 500 15px var(--label);
+  letter-spacing: 0.02em;
+  fill: var(--ivory);
+}
+.n-s {
+  font: 300 12.5px var(--label);
+  fill: var(--mute);
+}
+.n-b {
+  font: 500 9.5px var(--label);
+  letter-spacing: 0.22em;
+  fill: var(--gold);
+  text-transform: uppercase;
+}
+.n-b.ox {
+  fill: #d77a6f;
+}
+.n-b.dm {
+  fill: var(--dim);
+}
+.e {
+  fill: none;
+  stroke: var(--gold);
+  stroke-opacity: 0.55;
+  stroke-width: 1.2;
+  stroke-dasharray: 3 7;
+  animation: flow 1.8s linear infinite;
+}
+.e.ox {
+  stroke: var(--ox);
+  stroke-opacity: 0.8;
+  animation-duration: 3.4s;
+}
+.e.dm {
+  stroke: var(--dim);
+  stroke-opacity: 0.8;
+}
+@keyframes flow {
+  to {
+    stroke-dashoffset: -20;
+  }
+}
+.js .diagram .nd,
+.js .diagram .e,
+.js .diagram .e-dot {
+  opacity: 0;
+  transition: opacity 0.9s var(--out);
+  transition-delay: calc(var(--k, 0) * 0.12s);
+}
+.js .diagram.in .nd,
+.js .diagram.in .e,
+.js .diagram.in .e-dot {
+  opacity: 1;
+}
+.e-dot {
+  fill: var(--gold);
+}
+
+#system h2 {
+  max-width: 19ch;
+}
