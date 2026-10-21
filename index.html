@@ -3,18 +3,18 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Garuda Route — Rain finds the low roads. We keep the record.</title>
+    <title>Garuda Route: Rain finds the low roads. We keep the record.</title>
     <meta
       name="description"
-      content="Garuda Route is a rainfall-aware road waterlogging dashboard for Kanpur and Gurugram: historical road-level evidence, a rainfall clock and route comparison. A prototype, plain about its limits."
+      content="Garuda Route is a rainfall-aware road waterlogging dashboard for Kanpur and Gurugram: historical road-level evidence, a rainfall clock, and route comparison. A prototype with defined limits."
     />
     <meta name="theme-color" content="#07090A" />
 
     <meta property="og:type" content="website" />
-    <meta property="og:title" content="Garuda Route — Rain finds the low roads." />
+    <meta property="og:title" content="Garuda Route: Rain finds the low roads." />
     <meta
       property="og:description"
-      content="Historical waterlogging evidence, a rainfall clock and route comparison for Kanpur and Gurugram."
+      content="Historical waterlogging evidence, a rainfall clock, and route comparison for Kanpur and Gurugram."
     />
     <meta property="og:image" content="assets/img/og-cover.jpg" />
     <meta name="twitter:card" content="summary_large_image" />
@@ -118,7 +118,7 @@
         <span class="line" style="--i:2"><span>the low roads.</span></span>
         <span class="line sub" style="--i:4"><span><em>Garuda Route keeps the record.</em></span></span>
       </h1>
-      <p class="lede reveal" style="--d:.5s">A rainfall-aware waterlogging dashboard. Historical road-level evidence, a rainfall clock, and route comparison — a prototype that is plain about its limits.</p>
+      <p class="lede reveal" style="--d:.5s">A rainfall-aware waterlogging dashboard. It tracks historical road evidence alongside a rainfall reference clock and route comparisons, functioning as a prototype with stated limits.</p>
       <div class="hero-cta reveal" style="--d:.65s">
         <a class="btn btn--fill magnetic" href="https://github.com/SG4067/garuda-route" target="_blank" rel="noopener">Explore the repository
           <svg class="icon" aria-hidden="true"><use href="#i-arrow"/></svg></a>
@@ -161,7 +161,7 @@
     </div>
   </div>
   <div class="cue" aria-hidden="true"><i></i>Scroll</div>
-  <div class="hero-note">Prototype. Not a certified flood-prediction or emergency-navigation system.</div>
+  <div class="hero-note">Prototype system. Not certified for flood forecasting or emergency navigation.</div>
   </div>
 </section>
 
@@ -175,7 +175,7 @@
         <span class="line" style="--i:1"><span>Seven places.</span></span>
         <span class="line" style="--i:2"><span><em>Two cities.</em></span></span>
       </h2>
-      <p class="lede reveal">The dashboard opens on documented waterlogging locations in Kanpur and Gurugram. Every record keeps its source link, its event date, the rainfall it reported, and what is still unknown about it.</p>
+      <p class="lede reveal">The dashboard documents mapped waterlogging locations across Kanpur and Gurugram. Each entry records the source citation, event date, reported rainfall figure, and documented data limits.</p>
     </div>
     <div>
       <div class="stats" id="stats">
@@ -183,8 +183,8 @@
         <div class="stat"><b>7</b><span>Locations<em>named, sourced, caveated</em></span></div>
         <div class="stat"><b>2</b><span>Cities<em>Kanpur and Gurugram</em></span></div>
       </div>
-      <blockquote class="pull reveal">Unknown never becomes zero. Unknown never becomes safe.</blockquote>
-      <p class="fine reveal">A record may carry a city- or district-level rainfall figure, an event window, or qualitative impact rather than a measurement at the named road. Public reports are incomplete — no match is not proof that a place never floods.</p>
+      <blockquote class="pull reveal">Missing records do not imply safety; unlisted roads may still flood under heavy rain.</blockquote>
+      <p class="fine reveal">Archived reports often cite district-wide totals, approximate timeframes, or qualitative news accounts rather than street-level telemetry. Because public data is partial, the absence of a record does not prove that a road stays dry.</p>
     </div>
   </div>
 </section>
@@ -198,13 +198,13 @@
         <span class="line" style="--i:0"><span>Drag the clock.</span></span>
         <span class="line" style="--i:1"><span><em>Watch the reference move.</em></span></span>
       </h2>
-      <p class="lede reveal">Each historical event reports a rainfall figure. The dashboard compares a rainfall amount against it and reclassifies as the value rises. The rain behind this page follows the dial.</p>
+      <p class="lede reveal">Each historical record includes a rainfall figure. The dashboard evaluates test amounts against this baseline, adjusting status levels as rainfall rises. Background rainfall on this page mirrors the dial setting.</p>
       <ul class="legend reveal">
         <li data-s="below"><i></i><div><b>Below 75%</b><span>Under the monitor level.</span></div></li>
         <li data-s="monitor"><i></i><div><b>75% and above · Monitor</b><span>Approaching the reported reference value.</span></div></li>
         <li data-s="high"><i></i><div><b>100% and above · High risk</b><span>At or beyond the reported reference value.</span></div></li>
       </ul>
-      <p class="fine reveal">Illustrative, expressed as a share of the reference value. These levels are the dashboard’s interface heuristics, not validated road-specific thresholds. The separate Python risk engine uses its own configurable ratio (default 0.70); the two are not interchangeable.</p>
+      <p class="fine reveal">Illustrative calculation, shown as a percentage of reference totals. These indicators provide visual heuristics rather than certified engineering standards. The backend Python risk engine applies its own configurable ratio (default 0.70); both services calculate risk independently.</p>
     </div>
     <div class="dial-wrap">
       <div class="dial" id="dialBox" data-cursor="drag" data-label="Drag">
@@ -241,11 +241,11 @@
         <span class="line" style="--i:1"><span><em>isn’t always the dry one.</em></span></span>
       </h2>
       <ol class="steps" id="steps">
-        <li class="step on"><b>i.</b><span><strong>The direct route</strong>The quickest candidate heads straight through the city.</span></li>
-        <li class="step"><b>ii.</b><span><strong>Known locations</strong>Places flagged by the historical comparison are checked against it.</span></li>
-        <li class="step"><b>iii.</b><span><strong>A drier candidate</strong>A route that avoids them is offered alongside — never promised as safe.</span></li>
+        <li class="step on"><b>i.</b><span><strong>Direct path</strong>The fastest standard route passes directly across town.</span></li>
+        <li class="step"><b>ii.</b><span><strong>Historical check</strong>The route engine cross-references the path against logged waterlogging locations.</span></li>
+        <li class="step"><b>iii.</b><span><strong>Alternative detour</strong>The system suggests an alternate path around flagged locations without guaranteeing dry pavement.</span></li>
       </ol>
-      <p class="fine">Route options come from Google Maps when it is configured. Comparison flags locations the dashboard knows about; it cannot guarantee a dry road.</p>
+      <p class="fine">Route paths load from Google Maps when API keys are configured. Path comparisons highlight recorded flood spots; they cannot guarantee dry transit.</p>
     </div>
     <div class="stage">
       <div class="plane" id="plane">
@@ -296,12 +296,12 @@
 
 <!-- ===== 05 system ===== -->
 <section id="system">
-  <div class="kicker reveal">05 <b>/</b> How it fits together</div>
+  <div class="kicker reveal">05 <b>/</b> System architecture</div>
   <h2 class="heading">
-    <span class="line" style="--i:0"><span>Two sources,</span></span>
-    <span class="line" style="--i:1"><span><em>never blended.</em></span></span>
+    <span class="line" style="--i:0"><span>Independent</span></span>
+    <span class="line" style="--i:1"><span><em>data pipelines.</em></span></span>
   </h2>
-  <p class="lede reveal">The browser dashboard reads historical records. The Python risk engine tracks rainfall observations against configured roads. Both aim at the same problem, and neither stands in for the other.</p>
+  <p class="lede reveal">The browser dashboard presents historical event records. The Python risk engine processes incoming rainfall telemetry against configured roads. The two pipelines remain separate to preserve clear data lineage.</p>
   <div class="diagram" id="diagram">
     <svg id="sysSvg" viewBox="0 0 1200 520" role="img" aria-labelledby="sysT sysD"><title id="sysT">System overview</title><desc id="sysD">Historical records feed the browser dashboard, which shows the map, alerts and history, and optionally calls Google Maps for route comparison. A Node backend proxies IMD district endpoints, which require official permission, and a separate risk API. Rainfall observations feed the Python M3 risk engine, which produces road risk assessments.</desc></svg>
   </div>
@@ -309,16 +309,16 @@
 
 <!-- ===== 06 limits ===== -->
 <section id="limits">
-  <div class="kicker reveal">06 <b>/</b> Candour</div>
+  <div class="kicker reveal">06 <b>/</b> Scope and limits</div>
   <h2 class="heading">
-    <span class="line" style="--i:0"><span>Honesty is</span></span>
-    <span class="line" style="--i:1"><span><em>part of the design.</em></span></span>
+    <span class="line" style="--i:0"><span>Documented</span></span>
+    <span class="line" style="--i:1"><span><em>constraints.</em></span></span>
   </h2>
   <ol class="limits" id="limitList">
-    <li class="limit"><b>i.</b><div><h3>A prototype, not a certified system.</h3><p>Garuda Route is not a flood-prediction or emergency-navigation tool. Follow official warnings, road closures and local emergency guidance.</p></div></li>
-    <li class="limit"><b>ii.</b><div><h3>Unknown is never zero, and never safe.</h3><p>Missing values stay missing. A road without an explicit observation mapping reads as unmapped, and a stale reading is a data-quality state, not evidence the rain has stopped.</p></div></li>
-    <li class="limit"><b>iii.</b><div><h3>Live weather is gated, and says so.</h3><p>IMD district data needs official permission and issued credentials. Until then the feed shows as unavailable, never as normal, and district rainfall is never presented as a road-level measurement.</p></div></li>
-    <li class="limit"><b>iv.</b><div><h3>A flagged route is a signal, not a promise.</h3><p>Comparison checks candidate routes against locations the dashboard already knows. Drainage, runoff, elevation and river levels are not modelled.</p></div></li>
+    <li class="limit"><b>i.</b><div><h3>Uncertified prototype.</h3><p>Garuda Route is an experimental dashboard. It does not replace official flood advisories, municipal road closures, or emergency response guidance.</p></div></li>
+    <li class="limit"><b>ii.</b><div><h3>Unmonitored roads are unverified.</h3><p>Missing entries remain unmapped rather than marked clear. Stale sensor telemetry indicates communication delays rather than receding water.</p></div></li>
+    <li class="limit"><b>iii.</b><div><h3>Live weather feeds require authorized access.</h3><p>Accessing IMD district telemetry requires valid agency credentials. Without active keys, the feed reports offline rather than assuming clear skies.</p></div></li>
+    <li class="limit"><b>iv.</b><div><h3>Route checks reflect mapped incidents only.</h3><p>Path evaluation compares journeys against logged flooding points. The system does not simulate drain capacity, runoff velocity, terrain elevation, or river cresting.</p></div></li>
   </ol>
 </section>
 
@@ -349,7 +349,7 @@
 <footer>
   <div class="mega" aria-hidden="true">Garuda Route</div>
   <div class="foot">
-    <p>Exploratory, empirical waterlogging indicators for rainfall-prone journeys in Kanpur and Gurugram. It does not guarantee that flooding will occur, or that any alternative route is safe.</p>
+    <p>Empirical waterlogging indicators for urban journeys across Kanpur and Gurugram. The tool does not predict flood events or guarantee that suggested detours remain passable.</p>
     <div><h4>Project</h4><ul>
       <li><a href="https://github.com/SG4067/garuda-route" target="_blank" rel="noopener">Repository</a></li>
       <li><a href="https://github.com/SG4067/garuda-route/blob/main/README.md" target="_blank" rel="noopener">README</a></li>
